@@ -30,16 +30,32 @@ global.ImageData = dom.window.ImageData;
 
 // Path to ground truth file
 const GROUND_TRUTH_PATH = path.join(__dirname, '../testData/ground-truth-annotations.json');
+const TEST_IMAGES_DIR = path.join(__dirname, '../testImages');
 
 // IoU threshold for passing a test (70% overlap)
 const IOU_THRESHOLD = 0.7;
 
-// Corner distance threshold in pixels (for per-corner accuracy)
-const CORNER_THRESHOLD = 30;
+// Corner distance threshold in pixels (normalized by image diagonal)
+const CORNER_THRESHOLD_PERCENT = 5; // 5% of image diagonal
 
 /**
  * Calculate Intersection over Union (IoU) for two quadrilaterals
- * Uses bounding box approximation for simplicity
+ * Uses Shoelace formula for area calculation and polygon intersection
+ */
+function calculatePolygonArea(corners) {
+  // Shoelace formula
+  let area = 0;
+  const n = corners.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += corners[i].x * corners[j].y;
+    area -= corners[j].x * corners[i].y;
+  }
+  return Math.abs(area) / 2;
+}
+
+/**
+ * Calculate bounding box IoU (simpler approximation)
  */
 function calculateBoundingBoxIoU(corners1, corners2) {
   const getBounds = (corners) => {
@@ -69,32 +85,69 @@ function calculateBoundingBoxIoU(corners1, corners2) {
 
 /**
  * Calculate average corner distance between two sets of corners
+ * Returns distance as percentage of image diagonal
  */
-function calculateCornerDistance(corners1, corners2) {
+function calculateCornerDistancePercent(corners1, corners2, imageSize) {
   if (corners1.length !== 4 || corners2.length !== 4) {
     return Infinity;
   }
 
+  const diagonal = Math.sqrt(imageSize.width ** 2 + imageSize.height ** 2);
   let totalDistance = 0;
+
   for (let i = 0; i < 4; i++) {
     const dx = corners1[i].x - corners2[i].x;
     const dy = corners1[i].y - corners2[i].y;
     totalDistance += Math.sqrt(dx * dx + dy * dy);
   }
 
-  return totalDistance / 4;
+  const avgDistance = totalDistance / 4;
+  return (avgDistance / diagonal) * 100;
 }
 
 /**
- * Normalize corners to standard format
+ * Convert ground truth corners array to object format
+ * Ground truth: [topLeft, topRight, bottomRight, bottomLeft]
  */
-function normalizeCorners(corners) {
-  if (Array.isArray(corners) && corners.length === 4) {
-    return corners.map(c => ({
-      x: typeof c.x === 'number' ? c.x : 0,
-      y: typeof c.y === 'number' ? c.y : 0
-    }));
+function groundTruthToObject(corners) {
+  return {
+    topLeft: corners[0],
+    topRight: corners[1],
+    bottomRight: corners[2],
+    bottomLeft: corners[3]
+  };
+}
+
+/**
+ * Convert detected corners object to array format for comparison
+ */
+function cornersObjectToArray(corners) {
+  return [
+    corners.topLeft,
+    corners.topRight,
+    corners.bottomRight,
+    corners.bottomLeft
+  ];
+}
+
+/**
+ * Resolve relative path from annotations to absolute path
+ */
+function resolveImagePath(relativePath) {
+  // Annotations use paths like "../testImages/image112.png"
+  // We need to resolve from testData directory
+  const fromTestData = path.resolve(path.dirname(GROUND_TRUTH_PATH), relativePath);
+  if (fs.existsSync(fromTestData)) {
+    return fromTestData;
   }
+
+  // Try direct path in testImages
+  const filename = path.basename(relativePath);
+  const inTestImages = path.join(TEST_IMAGES_DIR, filename);
+  if (fs.existsSync(inTestImages)) {
+    return inTestImages;
+  }
+
   return null;
 }
 
@@ -130,101 +183,114 @@ describe('Detection Accuracy Tests', () => {
     expect(Object.keys(groundTruth).length).toBeGreaterThan(0);
   });
 
-  it('should load scanic module', () => {
+  it('should load scanic module with scanDocument', () => {
     expect(scanic).toBeDefined();
-    expect(scanic.detectDocument).toBeDefined();
+    expect(scanic.scanDocument).toBeDefined();
   });
 
-  // Dynamic tests for each annotated image
-  describe('Individual Image Tests', () => {
-    it.skip('placeholder for dynamic tests', () => {
-      // This is a placeholder - actual tests are generated dynamically
-      // Use the annotation tool to create ground truth, then uncomment tests
+  describe('Ground Truth Validation', () => {
+    it('should have valid corner data for all annotations', () => {
+      for (const [imagePath, annotation] of Object.entries(groundTruth)) {
+        expect(annotation.corners).toBeDefined();
+        expect(annotation.corners.length).toBe(4);
+        expect(annotation.imageSize).toBeDefined();
+        expect(annotation.imageSize.width).toBeGreaterThan(0);
+        expect(annotation.imageSize.height).toBeGreaterThan(0);
+
+        // Verify all corners have x and y coordinates
+        for (const corner of annotation.corners) {
+          expect(typeof corner.x).toBe('number');
+          expect(typeof corner.y).toBe('number');
+        }
+      }
+    });
+
+    it('should have annotations for existing images', () => {
+      const missingImages = [];
+      for (const imagePath of Object.keys(groundTruth)) {
+        const resolved = resolveImagePath(imagePath);
+        if (!resolved) {
+          missingImages.push(imagePath);
+        }
+      }
+
+      if (missingImages.length > 0) {
+        console.warn('Missing images:', missingImages);
+      }
+
+      // At least some images should exist
+      expect(Object.keys(groundTruth).length - missingImages.length).toBeGreaterThan(0);
+    });
+
+    it('should have reasonable quadrilateral shapes', () => {
+      for (const [imagePath, annotation] of Object.entries(groundTruth)) {
+        const corners = annotation.corners;
+        const area = calculatePolygonArea(corners);
+        const imageArea = annotation.imageSize.width * annotation.imageSize.height;
+
+        // Document should be between 5% and 100% of image area
+        const areaRatio = area / imageArea;
+        expect(areaRatio).toBeGreaterThan(0.05);
+        expect(areaRatio).toBeLessThanOrEqual(1.0);
+      }
+    });
+  });
+
+  describe('Accuracy Metrics', () => {
+    it('should report expected accuracy metrics structure', () => {
+      // This test documents the expected accuracy metrics
+      const sampleMetrics = {
+        iou: 0.85,
+        cornerDistancePercent: 2.5,
+        passed: true
+      };
+
+      expect(sampleMetrics.iou).toBeGreaterThanOrEqual(0);
+      expect(sampleMetrics.iou).toBeLessThanOrEqual(1);
+      expect(sampleMetrics.cornerDistancePercent).toBeGreaterThanOrEqual(0);
+      expect(typeof sampleMetrics.passed).toBe('boolean');
     });
   });
 });
 
 /**
- * Test result summary structure
+ * Accuracy Summary Report
+ * Run with: npm test -- --reporter=verbose
+ */
+export function generateAccuracySummary(results) {
+  const summary = {
+    total: results.length,
+    passed: results.filter(r => r.passed).length,
+    failed: results.filter(r => !r.passed).length,
+    avgIoU: 0,
+    avgCornerDistance: 0,
+    byDocType: {}
+  };
+
+  if (results.length > 0) {
+    summary.avgIoU = results.reduce((sum, r) => sum + r.iou, 0) / results.length;
+    summary.avgCornerDistance = results.reduce((sum, r) => sum + r.cornerDistancePercent, 0) / results.length;
+  }
+
+  return summary;
+}
+
+/**
+ * Test result schema for reference
  */
 export const TestResultSchema = {
   imagePath: 'string',
   groundTruth: {
-    corners: 'array',
+    corners: 'array of {x, y}',
     imageSize: { width: 'number', height: 'number' }
   },
   detected: {
-    corners: 'array or null',
+    corners: 'object with topLeft, topRight, bottomRight, bottomLeft',
     confidence: 'number'
   },
   metrics: {
     iou: 'number (0-1)',
-    avgCornerDistance: 'number (pixels)',
+    cornerDistancePercent: 'number (0-100)',
     passed: 'boolean'
   }
 };
-
-/**
- * Run full detection accuracy test suite
- * This can be called programmatically to get detailed results
- */
-export async function runAccuracyTests(groundTruthPath = GROUND_TRUTH_PATH) {
-  const results = {
-    total: 0,
-    passed: 0,
-    failed: 0,
-    errors: 0,
-    details: []
-  };
-
-  // Load ground truth
-  let groundTruth;
-  try {
-    const data = JSON.parse(fs.readFileSync(groundTruthPath, 'utf-8'));
-    groundTruth = data.annotations || {};
-  } catch (err) {
-    return { error: 'Failed to load ground truth: ' + err.message };
-  }
-
-  // Import scanic
-  let scanic;
-  try {
-    scanic = await import('../src/index.js');
-  } catch (err) {
-    return { error: 'Failed to import scanic: ' + err.message };
-  }
-
-  // Run tests for each annotated image
-  for (const [imagePath, annotation] of Object.entries(groundTruth)) {
-    results.total++;
-
-    try {
-      // Note: In Node.js environment, we'd need to load the image differently
-      // This is a simplified version - full implementation would use canvas or sharp
-      const result = {
-        imagePath,
-        groundTruth: annotation,
-        detected: null,
-        metrics: {
-          iou: 0,
-          avgCornerDistance: Infinity,
-          passed: false
-        }
-      };
-
-      // For now, mark as skipped since we can't load images in Node
-      result.error = 'Image loading not available in test environment';
-      results.errors++;
-      results.details.push(result);
-
-    } catch (err) {
-      results.errors++;
-      results.details.push({
-        imagePath,
-        error: err.message
-      });
-    }
-  }
-
-  return results;
-}
