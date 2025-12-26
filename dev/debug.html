@@ -402,11 +402,14 @@
         await new Promise(resolve => {
           liveVideo.onloadedmetadata = resolve;
         });
-        
+
+        // Start video playback
+        await liveVideo.play();
+
         // Set canvas size to match video
         liveCanvas.width = liveVideo.videoWidth;
         liveCanvas.height = liveVideo.videoHeight;
-        
+
         updateLiveStatus('Ready', 'active');
         startLiveButton.disabled = false;
         
@@ -418,10 +421,12 @@
       }
     }
     
-    function startLiveScanning() {
+    async function startLiveScanning() {
       if (!liveStream || !liveVideo) {
-        initLiveScanner();
-        return;
+        await initLiveScanner();
+        if (!liveStream || !liveVideo) {
+          return; // Initialization failed
+        }
       }
       
       isLiveScanning = true;
@@ -1213,6 +1218,16 @@
         '../testImages/test8.JPG',
         '../testImages/test9.jpg',
         '../testImages/test10.jpg',
+        '../testImages/image112.png',
+        '../testImages/image1004.png',
+        '../testImages/image1038.png',
+        '../testImages/image1132.png',
+        '../testImages/NE D100 PR_ADULT_ID_300dpi.avif',
+        '../testImages/011718RealID(P).avif',
+        '../testImages/2978593_012218-kfsn-4p-real-id-ca-vid.jpg',
+        '../testImages/enhanced-dl-front-862x392.png',
+        '../testImages/enhanced-dl-back-867x396.png',
+        '../testImages/eoir-ereg-passport2.jpg',
       ];
       sampleImagesContainer.innerHTML = '';
       testImagePaths.forEach((path, index) => {

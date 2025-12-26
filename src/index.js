@@ -552,7 +552,6 @@ export {
 
 // Export barcode detection functions
 export {
-  BarcodeScanner,
   barcodeScanner,
   detectBarcodes,
   detectQRCodes,

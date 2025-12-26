@@ -483,14 +483,14 @@ pub fn sketch_filter(input: &[u8], width: usize, height: usize, edge_strength: f
             let idx = y * width + x;
 
             // Sobel-like edge detection
-            let gx = -gray[(y - 1) * width + (x - 1)] as f32
+            let gx = -(gray[(y - 1) * width + (x - 1)] as f32)
                    + gray[(y - 1) * width + (x + 1)] as f32
                    - 2.0 * gray[y * width + (x - 1)] as f32
                    + 2.0 * gray[y * width + (x + 1)] as f32
                    - gray[(y + 1) * width + (x - 1)] as f32
                    + gray[(y + 1) * width + (x + 1)] as f32;
 
-            let gy = -gray[(y - 1) * width + (x - 1)] as f32
+            let gy = -(gray[(y - 1) * width + (x - 1)] as f32)
                    - 2.0 * gray[(y - 1) * width + x] as f32
                    - gray[(y - 1) * width + (x + 1)] as f32
                    + gray[(y + 1) * width + (x - 1)] as f32

@@ -396,6 +396,9 @@
           if (videoReady) {
             startLiveScanning();
           }
+        }).catch(error => {
+          console.error('Camera initialization failed:', error);
+          updateLiveStatus('Camera failed: ' + error.message, 'inactive');
         });
         return;
       }
@@ -971,6 +974,16 @@
         './testImages/test8.JPG',
         './testImages/test9.jpg',
         './testImages/test10.jpg',
+        './testImages/image112.png',
+        './testImages/image1004.png',
+        './testImages/image1038.png',
+        './testImages/image1132.png',
+        './testImages/NE D100 PR_ADULT_ID_300dpi.avif',
+        './testImages/011718RealID(P).avif',
+        './testImages/2978593_012218-kfsn-4p-real-id-ca-vid.jpg',
+        './testImages/enhanced-dl-front-862x392.png',
+        './testImages/enhanced-dl-back-867x396.png',
+        './testImages/eoir-ereg-passport2.jpg',
       ];
       sampleImagesContainer.innerHTML = '';
       testImagePaths.forEach((path, index) => {
