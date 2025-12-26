@@ -13,7 +13,12 @@
     "build:wasm": "docker compose -f dev/docker-compose.yml up --build",
     "preview": "vite preview",
     "prepublishOnly": "npm run build",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:rust": "cd wasm_blur && cargo test",
+    "test:all": "npm run test:rust && npm run test"
   },
   "keywords": [
     "document",
@@ -40,6 +45,9 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "vite": "^6.3.4"
+    "@vitest/browser": "^4.0.16",
+    "jsdom": "^27.3.0",
+    "vite": "^6.3.4",
+    "vitest": "^4.0.16"
   }
 }

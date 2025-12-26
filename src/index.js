@@ -1,9 +1,35 @@
 /**
- * scanic
- * JavaScript document scanner without OpenCV dependency
- * MIT License
+ * Scanic - Modern Document Scanner for the Web
+ *
+ * A blazing-fast, lightweight document scanner library written in JavaScript and Rust (WASM).
+ * Enables developers to detect, scan, and process documents from images directly in the browser.
+ *
+ * @module scanic
+ * @version 0.1.8
+ * @license MIT
+ * @author marquaye
+ *
+ * @example
+ * // Basic document detection
+ * import { scanDocument } from 'scanic';
+ * const result = await scanDocument(imageElement);
+ * if (result.success) {
+ *   console.log('Document corners:', result.corners);
+ * }
+ *
+ * @example
+ * // Extract document with perspective correction
+ * const extracted = await scanDocument(imageElement, { mode: 'extract' });
+ * if (extracted.success) {
+ *   document.body.appendChild(extracted.output);
+ * }
+ *
+ * @example
+ * // Detect ID documents (passports, licenses)
+ * import { detectIDDocument } from 'scanic';
+ * const idResult = await detectIDDocument(imageElement);
+ * console.log('Document type:', idResult.validation.documentType);
  */
-
 
 import { detectDocumentContour } from './contourDetection.js';
 import { findCornerPoints } from './cornerDetection.js';
@@ -305,11 +331,29 @@ function warpTransform(ctx, image, matrix, outWidth, outHeight) {
 
 /**
  * Extract document with manual corner points (no detection).
- * @param {HTMLImageElement|HTMLCanvasElement|ImageData} image
- * @param {Object} corners - Corner points object with topLeft, topRight, bottomRight, bottomLeft
- * @param {Object} options
- *   - output: 'canvas' | 'imagedata' | 'dataurl' (default: 'canvas')
- * @returns {Promise<{output, corners, success, message}>}
+ * Use this when you already have the corner points (e.g., from user selection in an image editor).
+ *
+ * @param {HTMLImageElement|HTMLCanvasElement|ImageData} image - The source image
+ * @param {Object} corners - Corner points defining the document quadrilateral
+ * @param {Object} corners.topLeft - Top-left corner {x, y}
+ * @param {Object} corners.topRight - Top-right corner {x, y}
+ * @param {Object} corners.bottomRight - Bottom-right corner {x, y}
+ * @param {Object} corners.bottomLeft - Bottom-left corner {x, y}
+ * @param {Object} [options={}] - Extraction options
+ * @param {string} [options.output='canvas'] - Output format: 'canvas', 'imagedata', or 'dataurl'
+ * @returns {Promise<{output: (HTMLCanvasElement|ImageData|string|null), corners: Object, success: boolean, message: string}>}
+ *
+ * @example
+ * const corners = {
+ *   topLeft: { x: 100, y: 50 },
+ *   topRight: { x: 400, y: 60 },
+ *   bottomRight: { x: 390, y: 300 },
+ *   bottomLeft: { x: 110, y: 290 }
+ * };
+ * const result = await extractDocument(img, corners);
+ * if (result.success) {
+ *   document.body.appendChild(result.output);
+ * }
  */
 export async function extractDocument(image, corners, options = {}) {
   const outputType = options.output || 'canvas';
@@ -359,13 +403,32 @@ export async function extractDocument(image, corners, options = {}) {
 
 /**
  * Main entry point for document scanning.
- * @param {HTMLImageElement|HTMLCanvasElement|ImageData} image
- * @param {Object} options
- *   - mode: 'detect' | 'extract' (default: 'detect')
- *   - output: 'canvas' | 'imagedata' | 'dataurl' (default: 'canvas')
- *   - debug: boolean
- *   - ...other detection options
- * @returns {Promise<{output, corners, contour, debug, success, message}>}
+ * Detects and optionally extracts documents from images with automatic contour detection.
+ *
+ * @param {HTMLImageElement|HTMLCanvasElement|ImageData} image - The source image to scan
+ * @param {Object} [options={}] - Scanning options
+ * @param {string} [options.mode='detect'] - Operation mode: 'detect' (find corners only) or 'extract' (warp document)
+ * @param {string} [options.output='canvas'] - Output format: 'canvas', 'imagedata', or 'dataurl'
+ * @param {boolean} [options.debug=false] - Enable debug information
+ * @param {number} [options.maxProcessingDimension=800] - Maximum image dimension for processing
+ * @param {number} [options.lowThreshold=75] - Lower threshold for Canny edge detection
+ * @param {number} [options.highThreshold=200] - Upper threshold for Canny edge detection
+ * @param {number} [options.dilationKernelSize=3] - Kernel size for edge dilation
+ * @param {number} [options.dilationIterations=1] - Number of dilation iterations
+ * @param {number} [options.minArea=1000] - Minimum contour area to consider as document
+ * @param {number} [options.epsilon] - Epsilon for polygon approximation
+ * @returns {Promise<{output: (HTMLCanvasElement|ImageData|string|null), corners: Object|null, contour: Array|null, debug: Object|null, success: boolean, message: string}>}
+ *
+ * @example
+ * // Detect document (returns corners only)
+ * const detection = await scanDocument(img, { mode: 'detect' });
+ * if (detection.success) {
+ *   console.log('Found at:', detection.corners);
+ * }
+ *
+ * @example
+ * // Extract with perspective correction
+ * const extracted = await scanDocument(img, { mode: 'extract', output: 'canvas' });
  */
 export async function scanDocument(image, options = {}) {
   const mode = options.mode || 'detect';
@@ -438,3 +501,13 @@ export async function scanDocument(image, options = {}) {
     message: 'Document detected'
   };
 }
+
+// Export enhanced detection functions
+export {
+  enhancedDocumentDetection,
+  quickDocumentDetection,
+  detectIDDocument,
+  enhancedEdgeDetection,
+  detectDocumentHough,
+  DETECTION_PRESETS,
+} from './enhancedDetection.js';
