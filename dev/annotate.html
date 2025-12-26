@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanic - Ground Truth Annotation Tool</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      color: #00d4ff;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-primary {
+      background: #00d4ff;
+      color: #1a1a2e;
+    }
+    .btn-secondary {
+      background: #4a4a6a;
+      color: #fff;
+    }
+    .btn-danger {
+      background: #ff4757;
+      color: #fff;
+    }
+    .btn-success {
+      background: #2ed573;
+      color: #1a1a2e;
+    }
+    .main-area {
+      display: grid;
+      grid-template-columns: 250px 1fr 300px;
+      gap: 20px;
+    }
+    .image-list {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 15px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .image-list h3 {
+      margin: 0 0 15px 0;
+      color: #00d4ff;
+      font-size: 14px;
+    }
+    .image-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      transition: background 0.2s;
+    }
+    .image-item:hover {
+      background: #1a1a2e;
+    }
+    .image-item.active {
+      background: #00d4ff22;
+      border: 1px solid #00d4ff;
+    }
+    .image-item.annotated {
+      border-left: 3px solid #2ed573;
+    }
+    .image-item img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .image-item span {
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .canvas-container {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .canvas-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    #annotationCanvas {
+      cursor: crosshair;
+      max-width: 100%;
+      border-radius: 4px;
+    }
+    .corner-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #00d4ff;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: move;
+      z-index: 10;
+    }
+    .corner-handle:hover {
+      background: #ff4757;
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+    .panel {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .panel h3 {
+      margin: 0 0 15px 0;
+      color: #00d4ff;
+      font-size: 14px;
+    }
+    .coordinates {
+      font-family: monospace;
+      font-size: 12px;
+      background: #1a1a2e;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .coordinates div {
+      margin: 5px 0;
+    }
+    .instructions {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.6;
+    }
+    .instructions li {
+      margin: 5px 0;
+    }
+    .json-output {
+      margin-top: 20px;
+    }
+    .json-output textarea {
+      width: 100%;
+      height: 200px;
+      background: #1a1a2e;
+      border: 1px solid #4a4a6a;
+      border-radius: 4px;
+      color: #00d4ff;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 10px;
+      resize: vertical;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+    .status.info {
+      background: #00d4ff22;
+      color: #00d4ff;
+    }
+    .status.success {
+      background: #2ed57322;
+      color: #2ed573;
+    }
+    .status.warning {
+      background: #ffa50222;
+      color: #ffa502;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat {
+      background: #1a1a2e;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00d4ff;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ground Truth Annotation Tool</h1>
+
+    <div class="toolbar">
+      <button class="btn-primary" id="loadImagesBtn">Load Test Images</button>
+      <button class="btn-secondary" id="clearBtn" disabled>Clear Corners</button>
+      <button class="btn-success" id="saveBtn" disabled>Save Annotation</button>
+      <button class="btn-primary" id="exportBtn">Export All JSON</button>
+      <button class="btn-secondary" id="importBtn">Import JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display: none;">
+      <button class="btn-danger" id="runTestBtn">Run Detection Test</button>
+    </div>
+
+    <div class="main-area">
+      <div class="image-list">
+        <h3>Test Images</h3>
+        <div id="imageListContainer">
+          <p style="color: #888; font-size: 12px;">Click "Load Test Images" to begin</p>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <canvas id="annotationCanvas" width="800" height="600"></canvas>
+        </div>
+        <p style="color: #888; font-size: 12px; margin-top: 10px;">
+          Click 4 corners clockwise starting from top-left. Drag corners to adjust.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3>Annotation Details</h3>
+
+        <div class="status info" id="status">
+          Select an image to begin annotation
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value" id="totalImages">0</div>
+            <div class="stat-label">Total Images</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="annotatedCount">0</div>
+            <div class="stat-label">Annotated</div>
+          </div>
+        </div>
+
+        <div class="coordinates" id="coordinates">
+          <div>Top-Left: <span id="coord0">-</span></div>
+          <div>Top-Right: <span id="coord1">-</span></div>
+          <div>Bottom-Right: <span id="coord2">-</span></div>
+          <div>Bottom-Left: <span id="coord3">-</span></div>
+        </div>
+
+        <h3>Instructions</h3>
+        <ul class="instructions">
+          <li>Click on the image to place corner points</li>
+          <li>Place 4 corners in clockwise order: TL, TR, BR, BL</li>
+          <li>Drag corners to fine-tune positions</li>
+          <li>Click "Save Annotation" when done</li>
+          <li>Use "Export All JSON" to save ground truth data</li>
+          <li>"Run Detection Test" compares detection vs ground truth</li>
+        </ul>
+
+        <div class="json-output">
+          <h3>Current Annotation JSON</h3>
+          <textarea id="jsonOutput" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as scanic from '../src/index.js';
+
+    // State
+    let annotations = {};
+    let currentImage = null;
+    let currentImagePath = null;
+    let corners = [];
+    let draggingCorner = null;
+    let imageScale = 1;
+    let imageOffset = { x: 0, y: 0 };
+
+    // DOM elements
+    const canvas = document.getElementById('annotationCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const imageListContainer = document.getElementById('imageListContainer');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const status = document.getElementById('status');
+
+    // Test image paths
+    const testImagePaths = [
+      '../testImages/test.png',
+      '../testImages/test2.png',
+      '../testImages/test3.jpg',
+      '../testImages/test4.JPG',
+      '../testImages/test5.JPG',
+      '../testImages/test6.JPG',
+      '../testImages/test7.JPG',
+      '../testImages/test8.JPG',
+      '../testImages/test9.jpg',
+      '../testImages/test10.jpg',
+      '../testImages/image112.png',
+      '../testImages/image1004.png',
+      '../testImages/image1038.png',
+      '../testImages/image1132.png',
+      '../testImages/NE D100 PR_ADULT_ID_300dpi.avif',
+      '../testImages/011718RealID(P).avif',
+      '../testImages/2978593_012218-kfsn-4p-real-id-ca-vid.jpg',
+      '../testImages/enhanced-dl-front-862x392.png',
+      '../testImages/enhanced-dl-back-867x396.png',
+      '../testImages/eoir-ereg-passport2.jpg',
+    ];
+
+    // Load images list
+    document.getElementById('loadImagesBtn').addEventListener('click', () => {
+      loadImageList();
+    });
+
+    function loadImageList() {
+      imageListContainer.innerHTML = '';
+
+      testImagePaths.forEach((path, index) => {
+        const item = document.createElement('div');
+        item.className = 'image-item';
+        if (annotations[path]) {
+          item.classList.add('annotated');
+        }
+
+        const img = document.createElement('img');
+        img.src = path;
+        img.alt = `Image ${index + 1}`;
+
+        const name = path.split('/').pop();
+        const span = document.createElement('span');
+        span.textContent = name;
+
+        item.appendChild(img);
+        item.appendChild(span);
+        item.addEventListener('click', () => selectImage(path, item));
+
+        imageListContainer.appendChild(item);
+      });
+
+      updateStats();
+    }
+
+    function selectImage(path, itemElement) {
+      // Update active state
+      document.querySelectorAll('.image-item').forEach(el => el.classList.remove('active'));
+      itemElement.classList.add('active');
+
+      currentImagePath = path;
+
+      // Load image
+      const img = new Image();
+      img.onload = () => {
+        currentImage = img;
+
+        // Scale image to fit canvas while maintaining aspect ratio
+        const maxWidth = 800;
+        const maxHeight = 600;
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        imageScale = scale;
+        imageOffset = { x: 0, y: 0 };
+
+        // Load existing annotation if any
+        if (annotations[path]) {
+          corners = annotations[path].corners.map(c => ({
+            x: c.x * scale,
+            y: c.y * scale
+          }));
+        } else {
+          corners = [];
+        }
+
+        render();
+        updateCoordinates();
+        updateButtons();
+        setStatus('info', `Editing: ${path.split('/').pop()}`);
+      };
+      img.src = path;
+    }
+
+    function render() {
+      if (!currentImage) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+      // Draw polygon if we have corners
+      if (corners.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        for (let i = 1; i < corners.length; i++) {
+          ctx.lineTo(corners[i].x, corners[i].y);
+        }
+        if (corners.length === 4) {
+          ctx.closePath();
+        }
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Fill with transparent color
+        if (corners.length === 4) {
+          ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+          ctx.fill();
+        }
+
+        // Draw corner points
+        corners.forEach((corner, i) => {
+          ctx.beginPath();
+          ctx.arc(corner.x, corner.y, 8, 0, Math.PI * 2);
+          ctx.fillStyle = '#00d4ff';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Draw corner number
+          ctx.fillStyle = '#1a1a2e';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((i + 1).toString(), corner.x, corner.y);
+        });
+      }
+    }
+
+    function updateCoordinates() {
+      const labels = ['TL', 'TR', 'BR', 'BL'];
+      for (let i = 0; i < 4; i++) {
+        const el = document.getElementById(`coord${i}`);
+        if (corners[i]) {
+          const realX = Math.round(corners[i].x / imageScale);
+          const realY = Math.round(corners[i].y / imageScale);
+          el.textContent = `(${realX}, ${realY})`;
+        } else {
+          el.textContent = '-';
+        }
+      }
+
+      // Update JSON output
+      if (corners.length === 4 && currentImagePath) {
+        const annotation = {
+          image: currentImagePath,
+          corners: corners.map(c => ({
+            x: Math.round(c.x / imageScale),
+            y: Math.round(c.y / imageScale)
+          })),
+          imageSize: currentImage ? {
+            width: currentImage.width,
+            height: currentImage.height
+          } : null
+        };
+        jsonOutput.value = JSON.stringify(annotation, null, 2);
+      } else {
+        jsonOutput.value = '';
+      }
+    }
+
+    function updateButtons() {
+      document.getElementById('clearBtn').disabled = corners.length === 0;
+      document.getElementById('saveBtn').disabled = corners.length !== 4;
+    }
+
+    function updateStats() {
+      document.getElementById('totalImages').textContent = testImagePaths.length;
+      document.getElementById('annotatedCount').textContent = Object.keys(annotations).length;
+    }
+
+    function setStatus(type, message) {
+      status.className = `status ${type}`;
+      status.textContent = message;
+    }
+
+    // Canvas event handlers
+    let isDragging = false;
+    let dragStartPos = null;
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      dragStartPos = { x, y };
+
+      // Check if clicking on a corner (use larger hit area - 20px radius)
+      for (let i = 0; i < corners.length; i++) {
+        const dx = x - corners[i].x;
+        const dy = y - corners[i].y;
+        if (dx * dx + dy * dy < 400) { // 20px radius
+          draggingCorner = i;
+          isDragging = true;
+          canvas.style.cursor = 'grabbing';
+          e.preventDefault();
+          return;
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      const wasDragging = isDragging;
+      const draggedCorner = draggingCorner;
+
+      // Reset drag state
+      draggingCorner = null;
+      isDragging = false;
+      canvas.style.cursor = 'crosshair';
+
+      // If we weren't dragging a corner, this is a click to add a new corner
+      if (!wasDragging && draggedCorner === null && currentImage && corners.length < 4) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Make sure we're not clicking on an existing corner
+        let onCorner = false;
+        for (let i = 0; i < corners.length; i++) {
+          const dx = x - corners[i].x;
+          const dy = y - corners[i].y;
+          if (dx * dx + dy * dy < 400) {
+            onCorner = true;
+            break;
+          }
+        }
+
+        if (!onCorner) {
+          corners.push({ x, y });
+          render();
+          updateCoordinates();
+          updateButtons();
+
+          if (corners.length === 4) {
+            setStatus('success', 'All 4 corners placed. Save or adjust as needed.');
+          } else {
+            setStatus('info', `Placed corner ${corners.length}/4. Click to place next corner.`);
+          }
+        }
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Update cursor based on hover state
+      if (draggingCorner === null) {
+        let onCorner = false;
+        for (let i = 0; i < corners.length; i++) {
+          const dx = x - corners[i].x;
+          const dy = y - corners[i].y;
+          if (dx * dx + dy * dy < 400) {
+            onCorner = true;
+            break;
+          }
+        }
+        canvas.style.cursor = onCorner ? 'grab' : 'crosshair';
+      }
+
+      // Handle dragging
+      if (draggingCorner !== null) {
+        isDragging = true;
+        corners[draggingCorner].x = Math.max(0, Math.min(canvas.width, x));
+        corners[draggingCorner].y = Math.max(0, Math.min(canvas.height, y));
+        render();
+        updateCoordinates();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (draggingCorner !== null) {
+        draggingCorner = null;
+        isDragging = false;
+        canvas.style.cursor = 'crosshair';
+      }
+    });
+
+    // Button handlers
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      corners = [];
+      render();
+      updateCoordinates();
+      updateButtons();
+      setStatus('info', 'Corners cleared. Click to place new corners.');
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      if (corners.length !== 4 || !currentImagePath) return;
+
+      annotations[currentImagePath] = {
+        corners: corners.map(c => ({
+          x: Math.round(c.x / imageScale),
+          y: Math.round(c.y / imageScale)
+        })),
+        imageSize: {
+          width: currentImage.width,
+          height: currentImage.height
+        }
+      };
+
+      // Update list item
+      document.querySelectorAll('.image-item').forEach(item => {
+        const name = item.querySelector('span').textContent;
+        if (currentImagePath.endsWith(name)) {
+          item.classList.add('annotated');
+        }
+      });
+
+      updateStats();
+      setStatus('success', 'Annotation saved!');
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const data = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        annotations: annotations
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ground-truth-annotations.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setStatus('success', `Exported ${Object.keys(annotations).length} annotations`);
+    });
+
+    document.getElementById('importBtn').addEventListener('click', () => {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.annotations) {
+            annotations = data.annotations;
+            loadImageList();
+            setStatus('success', `Imported ${Object.keys(annotations).length} annotations`);
+          }
+        } catch (err) {
+          setStatus('warning', 'Failed to parse JSON file');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('runTestBtn').addEventListener('click', async () => {
+      if (Object.keys(annotations).length === 0) {
+        setStatus('warning', 'No annotations to test against');
+        return;
+      }
+
+      setStatus('info', 'Running detection tests...');
+
+      const results = [];
+      let passed = 0;
+      let failed = 0;
+
+      for (const [imagePath, groundTruth] of Object.entries(annotations)) {
+        try {
+          const img = await loadImage(imagePath);
+          const detected = await scanic.detectDocument(img);
+
+          if (detected && detected.corners) {
+            const iou = calculateIoU(groundTruth.corners, detected.corners, groundTruth.imageSize);
+            const accuracy = (iou * 100).toFixed(1);
+
+            results.push({
+              image: imagePath.split('/').pop(),
+              accuracy: accuracy + '%',
+              iou: iou,
+              passed: iou >= 0.7
+            });
+
+            if (iou >= 0.7) passed++;
+            else failed++;
+          } else {
+            results.push({
+              image: imagePath.split('/').pop(),
+              accuracy: '0%',
+              iou: 0,
+              passed: false,
+              error: 'No document detected'
+            });
+            failed++;
+          }
+        } catch (err) {
+          results.push({
+            image: imagePath.split('/').pop(),
+            accuracy: 'Error',
+            iou: 0,
+            passed: false,
+            error: err.message
+          });
+          failed++;
+        }
+      }
+
+      // Display results
+      const summary = `\nTest Results:\n${'='.repeat(50)}\n` +
+        results.map(r => `${r.passed ? '✓' : '✗'} ${r.image}: ${r.accuracy}${r.error ? ' - ' + r.error : ''}`).join('\n') +
+        `\n${'='.repeat(50)}\nPassed: ${passed}/${results.length} (${(passed/results.length*100).toFixed(1)}%)`;
+
+      jsonOutput.value = summary;
+
+      if (failed === 0) {
+        setStatus('success', `All ${passed} tests passed!`);
+      } else {
+        setStatus('warning', `${passed} passed, ${failed} failed`);
+      }
+    });
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    function calculateIoU(groundTruth, detected, imageSize) {
+      // Simplified IoU calculation using bounding box overlap
+      // For more accurate results, you'd calculate polygon intersection
+
+      const gtBounds = getBounds(groundTruth);
+      const detBounds = getBounds(detected);
+
+      const intersectX = Math.max(0, Math.min(gtBounds.maxX, detBounds.maxX) - Math.max(gtBounds.minX, detBounds.minX));
+      const intersectY = Math.max(0, Math.min(gtBounds.maxY, detBounds.maxY) - Math.max(gtBounds.minY, detBounds.minY));
+      const intersection = intersectX * intersectY;
+
+      const gtArea = (gtBounds.maxX - gtBounds.minX) * (gtBounds.maxY - gtBounds.minY);
+      const detArea = (detBounds.maxX - detBounds.minX) * (detBounds.maxY - detBounds.minY);
+      const union = gtArea + detArea - intersection;
+
+      return union > 0 ? intersection / union : 0;
+    }
+
+    function getBounds(corners) {
+      const xs = corners.map(c => c.x);
+      const ys = corners.map(c => c.y);
+      return {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys)
+      };
+    }
+
+    // Initialize
+    loadImageList();
+  </script>
+</body>
+</html>
