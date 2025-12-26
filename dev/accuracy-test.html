@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanic - Detection Accuracy Test</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    h1 { margin: 0 0 10px 0; color: #00d4ff; }
+    .subtitle { color: #888; margin-bottom: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    .summary {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #00d4ff;
+    }
+    .stat-value.good { color: #2ed573; }
+    .stat-value.bad { color: #ff4757; }
+    .stat-value.warning { color: #ffa502; }
+    .stat-label { color: #888; font-size: 14px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-primary { background: #00d4ff; color: #1a1a2e; }
+    .btn-secondary { background: #4a4a6a; color: #fff; }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    .result-card {
+      background: #16213e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .result-card.passed { border: 2px solid #2ed573; }
+    .result-card.failed { border: 2px solid #ff4757; }
+    .result-card.no-detection { border: 2px solid #ffa502; }
+
+    .result-header {
+      padding: 10px 15px;
+      background: #1a1a2e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .result-header h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #fff;
+      word-break: break-all;
+    }
+    .result-status {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .result-status.passed { background: #2ed573; color: #1a1a2e; }
+    .result-status.failed { background: #ff4757; color: #fff; }
+    .result-status.no-detection { background: #ffa502; color: #1a1a2e; }
+
+    .result-canvas-container {
+      position: relative;
+      background: #0a0a1a;
+    }
+    .result-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .result-metrics {
+      padding: 15px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .metric {
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .metric-label {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: #1a1a2e;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #00d4ff;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    .legend-color.ground-truth { background: #2ed573; }
+    .legend-color.detected { background: #ff4757; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Detection Accuracy Test</h1>
+    <p class="subtitle">Compares detected corners against ground truth annotations</p>
+
+    <div class="toolbar">
+      <button id="runTest" class="btn-primary">Run Accuracy Test</button>
+      <button id="exportResults" class="btn-secondary" disabled>Export Results</button>
+    </div>
+
+    <div class="progress-bar" id="progressBar" style="display: none;">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="summary" id="summary" style="display: none;">
+      <div class="stat">
+        <div class="stat-value" id="totalImages">0</div>
+        <div class="stat-label">Total Images</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value good" id="passedCount">0</div>
+        <div class="stat-label">Passed (IoU > 70%)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value bad" id="failedCount">0</div>
+        <div class="stat-label">Failed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value warning" id="noDetectionCount">0</div>
+        <div class="stat-label">No Detection</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="avgIoU">0%</div>
+        <div class="stat-label">Avg IoU</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="avgCornerDist">0px</div>
+        <div class="stat-label">Avg Corner Distance</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color ground-truth"></div>
+        <span>Ground Truth</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color detected"></div>
+        <span>Detected</span>
+      </div>
+    </div>
+
+    <div class="results" id="results"></div>
+  </div>
+
+  <script type="module">
+    import { scanDocument, detectIDDocument } from '../src/index.js';
+
+    const IOU_THRESHOLD = 0.7;
+    let testResults = [];
+
+    // Calculate bounding box IoU
+    function calculateBoundingBoxIoU(corners1, corners2) {
+      const getBounds = (corners) => {
+        const xs = corners.map(c => c.x);
+        const ys = corners.map(c => c.y);
+        return {
+          minX: Math.min(...xs),
+          maxX: Math.max(...xs),
+          minY: Math.min(...ys),
+          maxY: Math.max(...ys)
+        };
+      };
+
+      const b1 = getBounds(corners1);
+      const b2 = getBounds(corners2);
+
+      const intersectX = Math.max(0, Math.min(b1.maxX, b2.maxX) - Math.max(b1.minX, b2.minX));
+      const intersectY = Math.max(0, Math.min(b1.maxY, b2.maxY) - Math.max(b1.minY, b2.minY));
+      const intersection = intersectX * intersectY;
+
+      const area1 = (b1.maxX - b1.minX) * (b1.maxY - b1.minY);
+      const area2 = (b2.maxX - b2.minX) * (b2.maxY - b2.minY);
+      const union = area1 + area2 - intersection;
+
+      return union > 0 ? intersection / union : 0;
+    }
+
+    // Calculate average corner distance
+    function calculateAvgCornerDistance(corners1, corners2) {
+      let total = 0;
+      for (let i = 0; i < 4; i++) {
+        const dx = corners1[i].x - corners2[i].x;
+        const dy = corners1[i].y - corners2[i].y;
+        total += Math.sqrt(dx * dx + dy * dy);
+      }
+      return total / 4;
+    }
+
+    // Convert ground truth array to corners object
+    function gtToCorners(gt) {
+      return [gt[0], gt[1], gt[2], gt[3]]; // topLeft, topRight, bottomRight, bottomLeft
+    }
+
+    // Convert detected corners object to array
+    function detectedToArray(corners) {
+      return [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
+    }
+
+    // Load image
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    // Draw result on canvas
+    function drawResult(canvas, img, groundTruth, detected) {
+      const ctx = canvas.getContext('2d');
+
+      // Scale canvas to fit
+      const maxWidth = 400;
+      const scale = Math.min(maxWidth / img.width, 1);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Draw ground truth (green)
+      ctx.strokeStyle = '#2ed573';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const gt = groundTruth.map(p => ({ x: p.x * scale, y: p.y * scale }));
+      ctx.moveTo(gt[0].x, gt[0].y);
+      for (let i = 1; i < 4; i++) {
+        ctx.lineTo(gt[i].x, gt[i].y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // Draw ground truth corners
+      ctx.fillStyle = '#2ed573';
+      for (const p of gt) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw detected (red)
+      if (detected) {
+        ctx.strokeStyle = '#ff4757';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const det = detected.map(p => ({ x: p.x * scale, y: p.y * scale }));
+        ctx.moveTo(det[0].x, det[0].y);
+        for (let i = 1; i < 4; i++) {
+          ctx.lineTo(det[i].x, det[i].y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Draw detected corners
+        ctx.fillStyle = '#ff4757';
+        for (const p of det) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Run test on single image
+    async function testImage(imagePath, annotation) {
+      const result = {
+        imagePath,
+        groundTruth: annotation.corners,
+        imageSize: annotation.imageSize,
+        detected: null,
+        iou: 0,
+        avgCornerDistance: Infinity,
+        passed: false,
+        noDetection: false,
+        error: null
+      };
+
+      try {
+        // Resolve path from testData to testImages
+        const filename = imagePath.split('/').pop();
+        const imgSrc = `../testImages/${filename}`;
+
+        const img = await loadImage(imgSrc);
+
+        // Create canvas and get image data
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Run detection
+        const detection = await scanDocument(imageData, { mode: 'detect' });
+
+        if (detection.success && detection.corners) {
+          result.detected = detectedToArray(detection.corners);
+          result.iou = calculateBoundingBoxIoU(gtToCorners(annotation.corners), result.detected);
+          result.avgCornerDistance = calculateAvgCornerDistance(gtToCorners(annotation.corners), result.detected);
+          result.passed = result.iou >= IOU_THRESHOLD;
+        } else {
+          result.noDetection = true;
+        }
+
+        result.img = img;
+      } catch (err) {
+        result.error = err.message;
+        console.error(`Error testing ${imagePath}:`, err);
+      }
+
+      return result;
+    }
+
+    // Create result card
+    function createResultCard(result) {
+      const card = document.createElement('div');
+      card.className = `result-card ${result.noDetection ? 'no-detection' : (result.passed ? 'passed' : 'failed')}`;
+
+      const statusText = result.noDetection ? 'No Detection' : (result.passed ? 'Passed' : 'Failed');
+      const statusClass = result.noDetection ? 'no-detection' : (result.passed ? 'passed' : 'failed');
+
+      card.innerHTML = `
+        <div class="result-header">
+          <h3>${result.imagePath.split('/').pop()}</h3>
+          <span class="result-status ${statusClass}">${statusText}</span>
+        </div>
+        <div class="result-canvas-container">
+          <canvas class="result-canvas"></canvas>
+        </div>
+        <div class="result-metrics">
+          <div class="metric">
+            <div class="metric-value" style="color: ${result.iou >= IOU_THRESHOLD ? '#2ed573' : '#ff4757'}">${(result.iou * 100).toFixed(1)}%</div>
+            <div class="metric-label">IoU</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">${result.avgCornerDistance === Infinity ? 'N/A' : result.avgCornerDistance.toFixed(1) + 'px'}</div>
+            <div class="metric-label">Avg Corner Dist</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">${result.imageSize.width}x${result.imageSize.height}</div>
+            <div class="metric-label">Image Size</div>
+          </div>
+        </div>
+      `;
+
+      // Draw on canvas
+      const canvas = card.querySelector('canvas');
+      if (result.img) {
+        drawResult(canvas, result.img, result.groundTruth, result.detected);
+      }
+
+      return card;
+    }
+
+    // Update summary
+    function updateSummary() {
+      const passed = testResults.filter(r => r.passed).length;
+      const failed = testResults.filter(r => !r.passed && !r.noDetection).length;
+      const noDetection = testResults.filter(r => r.noDetection).length;
+
+      const detectedResults = testResults.filter(r => !r.noDetection);
+      const avgIoU = detectedResults.length > 0
+        ? detectedResults.reduce((sum, r) => sum + r.iou, 0) / detectedResults.length
+        : 0;
+      const avgDist = detectedResults.length > 0
+        ? detectedResults.reduce((sum, r) => sum + r.avgCornerDistance, 0) / detectedResults.length
+        : 0;
+
+      document.getElementById('totalImages').textContent = testResults.length;
+      document.getElementById('passedCount').textContent = passed;
+      document.getElementById('failedCount').textContent = failed;
+      document.getElementById('noDetectionCount').textContent = noDetection;
+      document.getElementById('avgIoU').textContent = (avgIoU * 100).toFixed(1) + '%';
+      document.getElementById('avgCornerDist').textContent = avgDist.toFixed(1) + 'px';
+
+      // Update colors based on performance
+      const iouEl = document.getElementById('avgIoU');
+      if (avgIoU >= 0.7) iouEl.className = 'stat-value good';
+      else if (avgIoU >= 0.5) iouEl.className = 'stat-value warning';
+      else iouEl.className = 'stat-value bad';
+    }
+
+    // Run all tests
+    async function runAllTests() {
+      const runBtn = document.getElementById('runTest');
+      const exportBtn = document.getElementById('exportResults');
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+      const summary = document.getElementById('summary');
+      const resultsContainer = document.getElementById('results');
+
+      runBtn.disabled = true;
+      exportBtn.disabled = true;
+      progressBar.style.display = 'block';
+      summary.style.display = 'none';
+      resultsContainer.innerHTML = '';
+      testResults = [];
+
+      // Load ground truth
+      let groundTruth;
+      try {
+        const response = await fetch('../testData/ground-truth-annotations.json');
+        const data = await response.json();
+        groundTruth = data.annotations;
+      } catch (err) {
+        alert('Failed to load ground truth annotations: ' + err.message);
+        runBtn.disabled = false;
+        return;
+      }
+
+      const entries = Object.entries(groundTruth);
+      let completed = 0;
+
+      for (const [imagePath, annotation] of entries) {
+        const result = await testImage(imagePath, annotation);
+        testResults.push(result);
+
+        const card = createResultCard(result);
+        resultsContainer.appendChild(card);
+
+        completed++;
+        progressFill.style.width = ((completed / entries.length) * 100) + '%';
+      }
+
+      summary.style.display = 'grid';
+      updateSummary();
+
+      runBtn.disabled = false;
+      exportBtn.disabled = false;
+    }
+
+    // Export results
+    function exportResults() {
+      const data = {
+        timestamp: new Date().toISOString(),
+        summary: {
+          total: testResults.length,
+          passed: testResults.filter(r => r.passed).length,
+          failed: testResults.filter(r => !r.passed && !r.noDetection).length,
+          noDetection: testResults.filter(r => r.noDetection).length,
+        },
+        results: testResults.map(r => ({
+          imagePath: r.imagePath,
+          iou: r.iou,
+          avgCornerDistance: r.avgCornerDistance,
+          passed: r.passed,
+          noDetection: r.noDetection,
+          groundTruth: r.groundTruth,
+          detected: r.detected
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accuracy-results-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Event listeners
+    document.getElementById('runTest').addEventListener('click', runAllTests);
+    document.getElementById('exportResults').addEventListener('click', exportResults);
+  </script>
+</body>
+</html>
