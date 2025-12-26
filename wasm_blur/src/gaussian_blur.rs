@@ -1,4 +1,6 @@
 use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
 use std::arch::wasm32::*;
 
 // Constants for optimization
@@ -51,6 +53,7 @@ pub fn create_gaussian_kernel_fixed(size: usize, sigma: f32) -> Vec<FixedPoint> 
 }
 
 // Optimized horizontal pass with fixed-point arithmetic
+#[cfg(target_arch = "wasm32")]
 #[target_feature(enable = "simd128")]
 #[inline]
 unsafe fn horizontal_pass_fixed(
@@ -127,6 +130,7 @@ unsafe fn horizontal_pass_fixed(
 }
 
 // Specialized 3x3 horizontal pass (most common case)
+#[cfg(target_arch = "wasm32")]
 #[target_feature(enable = "simd128")]
 #[inline]
 unsafe fn horizontal_pass_3x3_fixed(
@@ -204,6 +208,7 @@ unsafe fn horizontal_pass_3x3_fixed(
 }
 
 // Specialized 5x5 horizontal pass
+#[cfg(target_arch = "wasm32")]
 #[target_feature(enable = "simd128")]
 #[inline]
 unsafe fn horizontal_pass_5x5_fixed(
@@ -231,6 +236,7 @@ unsafe fn horizontal_pass_5x5_fixed(
 }
 
 // Optimized vertical pass with fixed-point arithmetic
+#[cfg(target_arch = "wasm32")]
 #[target_feature(enable = "simd128")]
 #[inline]
 unsafe fn vertical_pass_fixed(
@@ -309,6 +315,7 @@ unsafe fn vertical_pass_fixed(
 }
 
 // Specialized 3x3 vertical pass (most common case)
+#[cfg(target_arch = "wasm32")]
 #[target_feature(enable = "simd128")]
 #[inline]
 unsafe fn vertical_pass_3x3_fixed(
@@ -411,18 +418,86 @@ pub fn blur(
         sigma = 0.3 * (((kernel_size - 1) as f32) * 0.5 - 1.0) + 0.8;
     }
 
-    // Use fixed-point kernel for better performance
-    let kernel_fixed = create_gaussian_kernel_fixed(kernel_size, sigma);
-    
-    // Pre-allocate buffers with exact capacity
-    let pixel_count = width * height;
-    let mut temp_buffer = vec![0u32; pixel_count];
-    let mut result = vec![0u8; pixel_count];
+    // Use different implementations based on target
+    #[cfg(target_arch = "wasm32")]
+    {
+        // Use fixed-point kernel for better performance
+        let kernel_fixed = create_gaussian_kernel_fixed(kernel_size, sigma);
 
-    // Execute optimized fixed-point blur
-    unsafe {
-        horizontal_pass_fixed(grayscale, &mut temp_buffer, width, height, &kernel_fixed);
-        vertical_pass_fixed(&temp_buffer, &mut result, width, height, &kernel_fixed);
+        // Pre-allocate buffers with exact capacity
+        let pixel_count = width * height;
+        let mut temp_buffer = vec![0u32; pixel_count];
+        let mut result = vec![0u8; pixel_count];
+
+        // Execute optimized fixed-point blur
+        unsafe {
+            horizontal_pass_fixed(grayscale, &mut temp_buffer, width, height, &kernel_fixed);
+            vertical_pass_fixed(&temp_buffer, &mut result, width, height, &kernel_fixed);
+        }
+
+        result
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Fallback implementation for non-WASM targets (testing)
+        blur_fallback(grayscale, width, height, kernel_size, sigma)
+    }
+}
+
+/// Fallback blur implementation for non-WASM targets (used in tests)
+#[cfg(not(target_arch = "wasm32"))]
+fn blur_fallback(
+    grayscale: &[u8],
+    width: usize,
+    height: usize,
+    kernel_size: usize,
+    sigma: f32,
+) -> Vec<u8> {
+    // Create Gaussian kernel
+    let mut kernel = vec![0.0f32; kernel_size];
+    let half_size = (kernel_size / 2) as i32;
+    let neg_inv_2sigma_sq = -1.0 / (2.0 * sigma * sigma);
+    let mut sum = 0.0;
+
+    for i in 0..kernel_size {
+        let x = i as i32 - half_size;
+        let val = ((x * x) as f32 * neg_inv_2sigma_sq).exp();
+        kernel[i] = val;
+        sum += val;
+    }
+
+    // Normalize
+    for k in kernel.iter_mut() {
+        *k /= sum;
+    }
+
+    // Horizontal pass
+    let mut temp = vec![0.0f32; width * height];
+    for y in 0..height {
+        for x in 0..width {
+            let mut acc = 0.0f32;
+            for k in 0..kernel_size {
+                let offset = k as i32 - half_size;
+                let px = (x as i32 + offset).clamp(0, width as i32 - 1) as usize;
+                acc += grayscale[y * width + px] as f32 * kernel[k];
+            }
+            temp[y * width + x] = acc;
+        }
+    }
+
+    // Vertical pass
+    let mut result = vec![0u8; width * height];
+    for y in 0..height {
+        for x in 0..width {
+            let mut acc = 0.0f32;
+            for k in 0..kernel_size {
+                let offset = k as i32 - half_size;
+                let py = (y as i32 + offset).clamp(0, height as i32 - 1) as usize;
+                acc += temp[py * width + x] * kernel[k];
+            }
+            result[y * width + x] = acc.round().clamp(0.0, 255.0) as u8;
+        }
     }
 
     result

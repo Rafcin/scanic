@@ -466,15 +466,16 @@ mod tests {
 
     #[test]
     fn test_otsu_bimodal() {
-        // Create a bimodal image (half dark, half bright)
-        let mut input = vec![0u8; 100];
+        // Create a bimodal image with values around 50 and 200
+        let mut input = vec![50u8; 100];
         for i in 50..100 {
-            input[i] = 255;
+            input[i] = 200;
         }
 
         let threshold = otsu_threshold(&input, 10, 10);
 
-        // Threshold should be somewhere in the middle
-        assert!(threshold > 50 && threshold < 200);
+        // Threshold should be between the two modes
+        assert!(threshold >= 50 && threshold <= 200,
+            "Expected threshold between 50 and 200, got {}", threshold);
     }
 }

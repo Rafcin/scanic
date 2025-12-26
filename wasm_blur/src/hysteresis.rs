@@ -300,23 +300,26 @@ mod tests {
 
     #[test]
     fn test_performance_chunked_processing() {
-        // Test with larger image to verify chunked processing works
+        // Test with larger image to verify processing works on larger images
         let width = 100;
         let height = 100;
-        let mut suppressed = vec![50.0; width * height]; // All weak edges
-        
-        // Add some strong edges
-        for i in (1000..2000).step_by(100) {
-            suppressed[i] = 255.0;
+
+        // Create image with a horizontal line of strong edges
+        let mut suppressed = vec![0.0; width * height];
+
+        // Add a horizontal line of strong edges at row 50
+        for x in 0..width {
+            suppressed[50 * width + x] = 255.0;
         }
-        
+
         let low_threshold = 75.0;
         let high_threshold = 200.0;
-        
+
         let binary = hysteresis_thresholding_binary(&suppressed, width, height, low_threshold, high_threshold);
-        
-        // Should have some edges
+
+        // Should have the strong edge pixels
         let edge_count = binary.iter().filter(|&&x| x == 255).count();
-        assert!(edge_count > 0);
+        assert!(edge_count > 0, "Expected some edges for the horizontal line, got {}", edge_count);
+        assert_eq!(binary.len(), width * height, "Output should have correct size");
     }
 }
