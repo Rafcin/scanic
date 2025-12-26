@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanic - Document Scanner Testing Suite</title>
+  <style>
+    :root {
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-tertiary: #16213e;
+      --accent: #00d4ff;
+      --accent-dim: #0096b3;
+      --success: #2ed573;
+      --warning: #ffa502;
+      --danger: #ff4757;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b0;
+      --border: #2a2a4a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo h1 {
+      font-size: 24px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo .version {
+      background: var(--bg-tertiary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 30px;
+    }
+
+    .tab {
+      padding: 15px 25px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 30px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--accent); color: var(--bg-primary); }
+    .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-success { background: var(--success); color: var(--bg-primary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+
+    @media (max-width: 1200px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Stats */
+    .stat-card {
+      background: var(--bg-tertiary);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .stat-value.success { color: var(--success); }
+    .stat-value.warning { color: var(--warning); }
+    .stat-value.danger { color: var(--danger); }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    /* Image grid */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .image-thumb {
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .image-thumb:hover {
+      border-color: var(--accent);
+      transform: scale(1.02);
+    }
+
+    .image-thumb.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .image-thumb.has-annotation::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 10px;
+      height: 10px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* Canvas container */
+    .canvas-container {
+      position: relative;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .canvas-container canvas {
+      max-width: 100%;
+      max-height: 600px;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 20px;
+      padding: 10px 0;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    /* Debug log */
+    .debug-log {
+      background: #0a0a12;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .debug-log-header {
+      padding: 10px 15px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+    }
+
+    .debug-log-content {
+      padding: 15px;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .log-entry .timestamp {
+      color: var(--text-secondary);
+      margin-right: 10px;
+    }
+
+    .log-entry.info { color: var(--accent); }
+    .log-entry.success { color: var(--success); }
+    .log-entry.warning { color: var(--warning); }
+    .log-entry.error { color: var(--danger); }
+
+    /* Metrics panel */
+    .metrics-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .metric {
+      background: var(--bg-tertiary);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #a855f7);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* Results table */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table th {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .results-table tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-success { background: rgba(46, 213, 115, 0.2); color: var(--success); }
+    .badge-warning { background: rgba(255, 165, 2, 0.2); color: var(--warning); }
+    .badge-danger { background: rgba(255, 71, 87, 0.2); color: var(--danger); }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    /* Live scanner */
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    .live-dot.active {
+      background: var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(46, 213, 115, 0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(46, 213, 115, 0); }
+    }
+
+    /* Comparison view */
+    .comparison-canvas {
+      position: relative;
+    }
+
+    .comparison-overlay {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    /* Section headers */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    /* Flex utilities */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .gap-10 { gap: 10px; }
+    .gap-20 { gap: 20px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .mb-20 { margin-bottom: 20px; }
+    .mb-10 { margin-bottom: 10px; }
+    .mt-20 { margin-top: 20px; }
+    .text-sm { font-size: 13px; }
+    .text-muted { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <h1>Scanic</h1>
+      <span class="version" id="versionBadge">v0.1.8</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" onclick="exportDebugReport()">Export Debug Report</button>
+      <a href="https://github.com/Rafcin/scanic" target="_blank" class="btn btn-secondary btn-sm">GitHub</a>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <div class="tab active" data-tab="test">Detection Test</div>
+    <div class="tab" data-tab="accuracy">Accuracy Suite</div>
+    <div class="tab" data-tab="live">Live Scanner</div>
+    <div class="tab" data-tab="debug">Debug Console</div>
+  </nav>
+
+  <!-- Tab: Detection Test -->
+  <div id="tab-test" class="tab-content active">
+    <div class="grid-2">
+      <!-- Left: Image Selection -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Test Images</h3>
+          <button class="btn btn-sm btn-secondary" onclick="loadAnnotations()">Load Annotations</button>
+        </div>
+        <div class="card-body">
+          <div class="drop-zone" id="dropZone">
+            <p>Drag & drop an image or click to upload</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none">
+          </div>
+
+          <h4 class="mb-10 mt-20 text-sm text-muted">Sample Images</h4>
+          <div class="image-grid" id="imageGrid"></div>
+        </div>
+      </div>
+
+      <!-- Right: Detection Result -->
+      <div class="flex flex-col gap-20">
+        <div class="card">
+          <div class="card-header">
+            <h3>Detection Result</h3>
+            <div class="legend">
+              <div class="legend-item">
+                <div class="legend-color" style="background: var(--success)"></div>
+                <span>Ground Truth</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background: var(--danger)"></div>
+                <span>Detected</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="canvas-container">
+              <canvas id="mainCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Detection Metrics</h3>
+          </div>
+          <div class="card-body">
+            <div class="metrics-panel">
+              <div class="metric">
+                <div class="metric-label">IoU Score</div>
+                <div class="metric-value" id="metricIoU">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Corner Distance</div>
+                <div class="metric-value" id="metricCornerDist">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value" id="metricConfidence">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Processing Time</div>
+                <div class="metric-value" id="metricTime">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Accuracy Suite -->
+  <div id="tab-accuracy" class="tab-content">
+    <div class="section-header">
+      <h2>Accuracy Test Suite</h2>
+      <div class="flex gap-10">
+        <button class="btn btn-primary" id="runAccuracyBtn" onclick="runAccuracySuite()">Run All Tests</button>
+        <button class="btn btn-secondary" onclick="exportAccuracyResults()">Export Results</button>
+      </div>
+    </div>
+
+    <div class="progress-bar mb-20" id="accuracyProgress" style="display: none;">
+      <div class="progress-fill" id="accuracyProgressFill"></div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid-4 mb-20" id="accuracySummary" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">Total Images</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value success" id="statPassed">0</div>
+        <div class="stat-label">Passed (IoU > 70%)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value danger" id="statFailed">0</div>
+        <div class="stat-label">Failed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statAvgIoU">0%</div>
+        <div class="stat-label">Average IoU</div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Test Results</h3>
+        <span class="text-sm text-muted" id="resultCount">0 results</span>
+      </div>
+      <div class="card-body" style="padding: 0; overflow-x: auto;">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Status</th>
+              <th>IoU</th>
+              <th>Corner Dist</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr>
+              <td colspan="6" class="text-muted text-sm" style="text-align: center; padding: 40px;">
+                Click "Run All Tests" to start the accuracy suite
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Live Scanner -->
+  <div id="tab-live" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h3>
+            <span class="live-indicator">
+              <span class="live-dot" id="liveDot"></span>
+              Live Camera
+            </span>
+          </h3>
+          <div class="flex gap-10">
+            <button class="btn btn-success btn-sm" id="startLiveBtn" onclick="startLive()">Start</button>
+            <button class="btn btn-danger btn-sm" id="stopLiveBtn" onclick="stopLive()" disabled>Stop</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="canvas-container">
+            <canvas id="liveCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-20">
+        <div class="card">
+          <div class="card-header">
+            <h3>Live Stats</h3>
+          </div>
+          <div class="card-body">
+            <div class="metrics-panel">
+              <div class="metric">
+                <div class="metric-label">Render FPS</div>
+                <div class="metric-value" id="liveRenderFPS">0</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Detection FPS</div>
+                <div class="metric-value" id="liveDetectFPS">0</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Resolution</div>
+                <div class="metric-value text-sm" id="liveResolution">-</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Document</div>
+                <div class="metric-value text-sm" id="liveDocStatus">Not detected</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Capture</h3>
+          </div>
+          <div class="card-body">
+            <button class="btn btn-primary" id="captureBtn" onclick="captureFrame()" disabled style="width: 100%;">
+              Capture & Extract Document
+            </button>
+            <p class="text-sm text-muted mt-20">Hold document steady until detection is stable, then capture.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Debug Console -->
+  <div id="tab-debug" class="tab-content">
+    <div class="section-header">
+      <h2>Debug Console</h2>
+      <div class="flex gap-10">
+        <button class="btn btn-secondary btn-sm" onclick="clearDebugLog()">Clear Log</button>
+        <button class="btn btn-primary btn-sm" onclick="copyDebugLog()">Copy to Clipboard</button>
+        <button class="btn btn-success btn-sm" onclick="exportDebugReport()">Export Full Report</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h3>Event Log</h3>
+          <span class="text-sm text-muted" id="logCount">0 entries</span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="debug-log">
+            <div class="debug-log-content" id="debugLogContent">
+              <div class="log-entry info">
+                <span class="timestamp">[--:--:--]</span>
+                Debug console ready. Perform operations to see logs.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Last Detection Debug Data</h3>
+        </div>
+        <div class="card-body">
+          <pre id="debugData" style="font-size: 11px; overflow: auto; max-height: 350px; background: #0a0a12; padding: 15px; border-radius: 6px;">
+No detection data yet. Run a detection to see debug info.
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-20">
+      <div class="card-header">
+        <h3>System Info</h3>
+      </div>
+      <div class="card-body">
+        <div class="metrics-panel">
+          <div class="metric">
+            <div class="metric-label">WASM Status</div>
+            <div class="metric-value text-sm" id="wasmStatus">Checking...</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">WebGPU</div>
+            <div class="metric-value text-sm" id="webgpuStatus">Checking...</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Annotations Loaded</div>
+            <div class="metric-value" id="annotationsCount">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Test Images</div>
+            <div class="metric-value" id="testImagesCount">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as scanic from './src/index.js';
+    window.scanic = scanic;
+
+    // State
+    let groundTruth = {};
+    let currentImage = null;
+    let currentImagePath = null;
+    let debugLog = [];
+    let accuracyResults = [];
+    let lastDebugData = null;
+
+    // Live scanner state
+    let liveStream = null;
+    let liveVideo = null;
+    let liveAnimationId = null;
+    let isLiveScanning = false;
+    let lastCorners = null;
+    let stableDetections = 0;
+
+    // DOM elements
+    const mainCanvas = document.getElementById('mainCanvas');
+    const liveCanvas = document.getElementById('liveCanvas');
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      initTabs();
+      loadSampleImages();
+      await loadAnnotations();
+      checkSystemCapabilities();
+      log('info', 'Scanic testing suite initialized');
+    });
+
+    // Tab navigation
+    function initTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+        });
+      });
+    }
+
+    // Logging
+    function log(level, message, data = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = { timestamp, level, message, data };
+      debugLog.push(entry);
+
+      const logContent = document.getElementById('debugLogContent');
+      const logEl = document.createElement('div');
+      logEl.className = `log-entry ${level}`;
+      logEl.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+      logContent.appendChild(logEl);
+      logContent.scrollTop = logContent.scrollHeight;
+
+      document.getElementById('logCount').textContent = `${debugLog.length} entries`;
+
+      if (data) {
+        lastDebugData = data;
+        document.getElementById('debugData').textContent = JSON.stringify(data, null, 2);
+      }
+    }
+
+    window.clearDebugLog = function() {
+      debugLog = [];
+      document.getElementById('debugLogContent').innerHTML = '';
+      document.getElementById('logCount').textContent = '0 entries';
+      log('info', 'Debug log cleared');
+    };
+
+    window.copyDebugLog = function() {
+      const text = debugLog.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n');
+      navigator.clipboard.writeText(text);
+      log('success', 'Debug log copied to clipboard');
+    };
+
+    window.exportDebugReport = function() {
+      const report = {
+        exportedAt: new Date().toISOString(),
+        systemInfo: {
+          userAgent: navigator.userAgent,
+          wasmSupport: typeof WebAssembly !== 'undefined',
+          webgpuSupport: 'gpu' in navigator,
+        },
+        annotations: groundTruth,
+        accuracyResults,
+        debugLog,
+        lastDebugData
+      };
+
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `scanic-debug-report-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      log('success', 'Debug report exported');
+    };
+
+    // Load sample images
+    function loadSampleImages() {
+      const images = [
+        'test.png', 'test2.png', 'test3.jpg', 'test4.JPG', 'test5.JPG',
+        'test6.JPG', 'test7.JPG', 'test8.JPG', 'test9.jpg', 'test10.jpg',
+        'image112.png', 'image1004.png', 'image1038.png', 'image1132.png',
+        'NE D100 PR_ADULT_ID_300dpi.avif', '011718RealID(P).avif',
+        '2978593_012218-kfsn-4p-real-id-ca-vid.jpg',
+        'enhanced-dl-front-862x392.png', 'enhanced-dl-back-867x396.png',
+        'eoir-ereg-passport2.jpg'
+      ];
+
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = '';
+
+      images.forEach(name => {
+        const img = document.createElement('img');
+        img.src = `./testImages/${name}`;
+        img.className = 'image-thumb';
+        img.alt = name;
+        img.title = name;
+        img.addEventListener('click', () => selectImage(`./testImages/${name}`, name));
+        grid.appendChild(img);
+      });
+
+      document.getElementById('testImagesCount').textContent = images.length;
+    }
+
+    // Load annotations
+    window.loadAnnotations = async function() {
+      try {
+        const response = await fetch('./testData/ground-truth-annotations.json');
+        const data = await response.json();
+        groundTruth = data.annotations || {};
+        document.getElementById('annotationsCount').textContent = Object.keys(groundTruth).length;
+        log('success', `Loaded ${Object.keys(groundTruth).length} ground truth annotations`);
+      } catch (err) {
+        log('error', 'Failed to load annotations: ' + err.message);
+        groundTruth = {};
+      }
+    };
+
+    // Select image
+    async function selectImage(path, name) {
+      document.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      currentImagePath = path;
+      log('info', `Selected image: ${name}`);
+
+      const img = new Image();
+      img.onload = async () => {
+        currentImage = img;
+        await runDetection();
+      };
+      img.src = path;
+    }
+
+    // Run detection on current image
+    async function runDetection() {
+      if (!currentImage) return;
+
+      const ctx = mainCanvas.getContext('2d');
+      mainCanvas.width = currentImage.width;
+      mainCanvas.height = currentImage.height;
+      ctx.drawImage(currentImage, 0, 0);
+
+      const startTime = performance.now();
+
+      try {
+        const imageData = ctx.getImageData(0, 0, mainCanvas.width, mainCanvas.height);
+        const result = await scanic.scanDocument(imageData, {
+          mode: 'detect',
+          debug: true
+        });
+
+        const elapsed = performance.now() - startTime;
+
+        // Find ground truth for this image
+        const gtKey = Object.keys(groundTruth).find(k => currentImagePath.includes(k.split('/').pop()));
+        const gt = gtKey ? groundTruth[gtKey] : null;
+
+        // Draw results
+        ctx.drawImage(currentImage, 0, 0);
+
+        if (gt) {
+          drawCorners(ctx, gt.corners, '#2ed573', 'Ground Truth');
+        }
+
+        if (result.success && result.corners) {
+          const detected = [
+            result.corners.topLeft,
+            result.corners.topRight,
+            result.corners.bottomRight,
+            result.corners.bottomLeft
+          ];
+          drawCorners(ctx, detected, '#ff4757', 'Detected');
+
+          // Calculate metrics
+          if (gt) {
+            const iou = calculateIoU(gt.corners, detected);
+            const cornerDist = calculateCornerDistance(gt.corners, detected);
+
+            document.getElementById('metricIoU').textContent = (iou * 100).toFixed(1) + '%';
+            document.getElementById('metricIoU').style.color = iou >= 0.7 ? 'var(--success)' : 'var(--danger)';
+            document.getElementById('metricCornerDist').textContent = cornerDist.toFixed(1) + 'px';
+          } else {
+            document.getElementById('metricIoU').textContent = 'No GT';
+            document.getElementById('metricCornerDist').textContent = '-';
+          }
+
+          document.getElementById('metricConfidence').textContent = result.confidence ? (result.confidence * 100).toFixed(0) + '%' : '-';
+        } else {
+          document.getElementById('metricIoU').textContent = 'No detection';
+          document.getElementById('metricCornerDist').textContent = '-';
+          document.getElementById('metricConfidence').textContent = '-';
+        }
+
+        document.getElementById('metricTime').textContent = elapsed.toFixed(0) + 'ms';
+
+        log('success', `Detection completed in ${elapsed.toFixed(0)}ms`, result.debug);
+
+      } catch (err) {
+        log('error', 'Detection failed: ' + err.message);
+      }
+    }
+
+    // Draw corners on canvas
+    function drawCorners(ctx, corners, color, label) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 4; i++) {
+        ctx.lineTo(corners[i].x, corners[i].y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.fillStyle = color;
+      corners.forEach((c, i) => {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Calculate IoU
+    function calculateIoU(gt, detected) {
+      const getBounds = (corners) => ({
+        minX: Math.min(...corners.map(c => c.x)),
+        maxX: Math.max(...corners.map(c => c.x)),
+        minY: Math.min(...corners.map(c => c.y)),
+        maxY: Math.max(...corners.map(c => c.y))
+      });
+
+      const b1 = getBounds(gt);
+      const b2 = getBounds(detected);
+
+      const intersectX = Math.max(0, Math.min(b1.maxX, b2.maxX) - Math.max(b1.minX, b2.minX));
+      const intersectY = Math.max(0, Math.min(b1.maxY, b2.maxY) - Math.max(b1.minY, b2.minY));
+      const intersection = intersectX * intersectY;
+
+      const area1 = (b1.maxX - b1.minX) * (b1.maxY - b1.minY);
+      const area2 = (b2.maxX - b2.minX) * (b2.maxY - b2.minY);
+      const union = area1 + area2 - intersection;
+
+      return union > 0 ? intersection / union : 0;
+    }
+
+    // Calculate corner distance
+    function calculateCornerDistance(gt, detected) {
+      let total = 0;
+      for (let i = 0; i < 4; i++) {
+        const dx = gt[i].x - detected[i].x;
+        const dy = gt[i].y - detected[i].y;
+        total += Math.sqrt(dx * dx + dy * dy);
+      }
+      return total / 4;
+    }
+
+    // Run accuracy suite
+    window.runAccuracySuite = async function() {
+      const entries = Object.entries(groundTruth);
+      if (entries.length === 0) {
+        log('error', 'No annotations loaded');
+        return;
+      }
+
+      document.getElementById('accuracyProgress').style.display = 'block';
+      document.getElementById('accuracySummary').style.display = 'grid';
+      document.getElementById('runAccuracyBtn').disabled = true;
+
+      accuracyResults = [];
+      const tbody = document.getElementById('resultsBody');
+      tbody.innerHTML = '';
+
+      let passed = 0, failed = 0, totalIoU = 0;
+
+      for (let i = 0; i < entries.length; i++) {
+        const [imagePath, annotation] = entries[i];
+        const filename = imagePath.split('/').pop();
+
+        document.getElementById('accuracyProgressFill').style.width = ((i + 1) / entries.length * 100) + '%';
+
+        try {
+          const img = await loadImageAsync(`./testImages/${filename}`);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          const startTime = performance.now();
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const result = await scanic.scanDocument(imageData, { mode: 'detect' });
+          const elapsed = performance.now() - startTime;
+
+          let iou = 0, cornerDist = 0, status = 'no-detection';
+
+          if (result.success && result.corners) {
+            const detected = [
+              result.corners.topLeft,
+              result.corners.topRight,
+              result.corners.bottomRight,
+              result.corners.bottomLeft
+            ];
+            iou = calculateIoU(annotation.corners, detected);
+            cornerDist = calculateCornerDistance(annotation.corners, detected);
+            status = iou >= 0.7 ? 'passed' : 'failed';
+            totalIoU += iou;
+
+            if (status === 'passed') passed++;
+            else failed++;
+          } else {
+            failed++;
+          }
+
+          const resultEntry = { filename, iou, cornerDist, elapsed, status };
+          accuracyResults.push(resultEntry);
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${filename}</td>
+            <td><span class="badge badge-${status === 'passed' ? 'success' : status === 'failed' ? 'danger' : 'warning'}">${status}</span></td>
+            <td>${(iou * 100).toFixed(1)}%</td>
+            <td>${cornerDist.toFixed(1)}px</td>
+            <td>${elapsed.toFixed(0)}ms</td>
+            <td><button class="btn btn-sm btn-secondary" onclick="viewResult('${filename}')">View</button></td>
+          `;
+          tbody.appendChild(row);
+
+        } catch (err) {
+          log('error', `Failed to test ${filename}: ${err.message}`);
+          accuracyResults.push({ filename, error: err.message, status: 'error' });
+          failed++;
+        }
+      }
+
+      document.getElementById('statTotal').textContent = entries.length;
+      document.getElementById('statPassed').textContent = passed;
+      document.getElementById('statFailed').textContent = failed;
+      document.getElementById('statAvgIoU').textContent = (totalIoU / entries.length * 100).toFixed(1) + '%';
+      document.getElementById('resultCount').textContent = `${accuracyResults.length} results`;
+      document.getElementById('runAccuracyBtn').disabled = false;
+
+      log('success', `Accuracy suite completed: ${passed}/${entries.length} passed`);
+    };
+
+    window.exportAccuracyResults = function() {
+      const data = {
+        exportedAt: new Date().toISOString(),
+        summary: {
+          total: accuracyResults.length,
+          passed: accuracyResults.filter(r => r.status === 'passed').length,
+          failed: accuracyResults.filter(r => r.status !== 'passed').length,
+        },
+        results: accuracyResults
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accuracy-results-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    window.viewResult = function(filename) {
+      selectImage(`./testImages/${filename}`, filename);
+      document.querySelector('[data-tab="test"]').click();
+    };
+
+    // Helper to load image
+    function loadImageAsync(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    // Live scanner
+    window.startLive = async function() {
+      try {
+        liveStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' }
+        });
+
+        liveVideo = document.createElement('video');
+        liveVideo.srcObject = liveStream;
+        liveVideo.autoplay = true;
+        liveVideo.playsInline = true;
+        await liveVideo.play();
+
+        liveCanvas.width = liveVideo.videoWidth;
+        liveCanvas.height = liveVideo.videoHeight;
+
+        document.getElementById('liveResolution').textContent = `${liveVideo.videoWidth}x${liveVideo.videoHeight}`;
+        document.getElementById('liveDot').classList.add('active');
+        document.getElementById('startLiveBtn').disabled = true;
+        document.getElementById('stopLiveBtn').disabled = false;
+
+        isLiveScanning = true;
+        liveLoop();
+        log('success', 'Live scanner started');
+
+      } catch (err) {
+        log('error', 'Failed to start camera: ' + err.message);
+      }
+    };
+
+    window.stopLive = function() {
+      isLiveScanning = false;
+      if (liveAnimationId) cancelAnimationFrame(liveAnimationId);
+      if (liveStream) liveStream.getTracks().forEach(t => t.stop());
+
+      document.getElementById('liveDot').classList.remove('active');
+      document.getElementById('startLiveBtn').disabled = false;
+      document.getElementById('stopLiveBtn').disabled = true;
+      document.getElementById('captureBtn').disabled = true;
+
+      log('info', 'Live scanner stopped');
+    };
+
+    let lastFpsTime = 0, frameCount = 0, detectCount = 0, lastDetectTime = 0;
+
+    function liveLoop() {
+      if (!isLiveScanning) return;
+
+      const ctx = liveCanvas.getContext('2d');
+      const now = performance.now();
+
+      if (liveVideo.readyState >= 2) {
+        ctx.drawImage(liveVideo, 0, 0);
+        frameCount++;
+
+        if (now - lastFpsTime > 1000) {
+          document.getElementById('liveRenderFPS').textContent = frameCount;
+          document.getElementById('liveDetectFPS').textContent = detectCount;
+          frameCount = 0;
+          detectCount = 0;
+          lastFpsTime = now;
+        }
+
+        if (now - lastDetectTime > 150) {
+          performLiveDetection(ctx);
+          lastDetectTime = now;
+        } else if (lastCorners) {
+          drawLiveOverlay(ctx, lastCorners);
+        }
+      }
+
+      liveAnimationId = requestAnimationFrame(liveLoop);
+    }
+
+    async function performLiveDetection(ctx) {
+      try {
+        const imageData = ctx.getImageData(0, 0, liveCanvas.width, liveCanvas.height);
+        const result = await scanic.scanDocument(imageData, { mode: 'detect', maxProcessingDimension: 400 });
+        detectCount++;
+
+        if (result.success && result.corners) {
+          const similar = areCornersSimilar(result.corners, lastCorners);
+          if (similar) stableDetections++;
+          else stableDetections = Math.max(0, stableDetections - 1);
+
+          lastCorners = result.corners;
+          drawLiveOverlay(ctx, result.corners);
+
+          if (stableDetections >= 3) {
+            document.getElementById('liveDocStatus').textContent = 'Ready!';
+            document.getElementById('captureBtn').disabled = false;
+          } else {
+            document.getElementById('liveDocStatus').textContent = 'Stabilizing...';
+            document.getElementById('captureBtn').disabled = true;
+          }
+        } else {
+          stableDetections = 0;
+          lastCorners = null;
+          document.getElementById('liveDocStatus').textContent = 'Not detected';
+          document.getElementById('captureBtn').disabled = true;
+        }
+      } catch (err) {
+        // Silent fail for live detection
+      }
+    }
+
+    function areCornersSimilar(c1, c2, threshold = 25) {
+      if (!c1 || !c2) return false;
+      for (const key of ['topLeft', 'topRight', 'bottomRight', 'bottomLeft']) {
+        const dist = Math.sqrt((c1[key].x - c2[key].x) ** 2 + (c1[key].y - c2[key].y) ** 2);
+        if (dist > threshold) return false;
+      }
+      return true;
+    }
+
+    function drawLiveOverlay(ctx, corners) {
+      ctx.drawImage(liveVideo, 0, 0);
+
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
+      ctx.lineTo(corners.topRight.x, corners.topRight.y);
+      ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+      ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#00d4ff';
+      for (const key of ['topLeft', 'topRight', 'bottomRight', 'bottomLeft']) {
+        ctx.beginPath();
+        ctx.arc(corners[key].x, corners[key].y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    window.captureFrame = async function() {
+      if (!lastCorners) return;
+
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = liveVideo.videoWidth;
+        canvas.height = liveVideo.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(liveVideo, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const result = await scanic.scanDocument(imageData, { mode: 'extract', output: 'canvas' });
+
+        if (result.success && result.output) {
+          const dataUrl = result.output.toDataURL();
+          const win = window.open();
+          win.document.write(`<img src="${dataUrl}" style="max-width:100%">`);
+          log('success', 'Document captured and extracted');
+        }
+      } catch (err) {
+        log('error', 'Capture failed: ' + err.message);
+      }
+    };
+
+    // System capabilities
+    async function checkSystemCapabilities() {
+      try {
+        const ready = await scanic.isWasmReady();
+        document.getElementById('wasmStatus').textContent = ready ? 'Ready' : 'Not loaded';
+        document.getElementById('wasmStatus').style.color = ready ? 'var(--success)' : 'var(--warning)';
+      } catch {
+        document.getElementById('wasmStatus').textContent = 'Error';
+        document.getElementById('wasmStatus').style.color = 'var(--danger)';
+      }
+
+      document.getElementById('webgpuStatus').textContent = 'gpu' in navigator ? 'Available' : 'Not available';
+      document.getElementById('webgpuStatus').style.color = 'gpu' in navigator ? 'var(--success)' : 'var(--text-secondary)';
+    }
+
+    // File drop handling
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+          currentImagePath = file.name;
+          runDetection();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      log('info', `Loaded file: ${file.name}`);
+    }
+  </script>
+</body>
+</html>
