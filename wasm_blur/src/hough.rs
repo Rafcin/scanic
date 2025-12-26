@@ -34,6 +34,7 @@ pub struct LineSegment {
 struct TrigTable {
     sin_table: Vec<f32>,
     cos_table: Vec<f32>,
+    #[allow(dead_code)]
     theta_step: f32,
     num_angles: usize,
 }

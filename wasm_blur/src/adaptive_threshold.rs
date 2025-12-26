@@ -1,8 +1,5 @@
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use std::arch::wasm32::*;
-
 /// Adaptive thresholding methods
 /// These automatically determine thresholds based on local image statistics,
 /// which is crucial for documents with uneven lighting.
@@ -303,8 +300,8 @@ pub fn adaptive_threshold_niblack(
 #[wasm_bindgen]
 pub fn compute_adaptive_canny_thresholds(
     magnitude: &[f32],
-    width: usize,
-    height: usize,
+    _width: usize,
+    _height: usize,
     low_ratio: f32,  // Typically 0.4
     high_ratio: f32, // Typically 0.7
 ) -> Vec<f32> {
@@ -343,7 +340,7 @@ pub fn otsu_threshold(input: &[u8], width: usize, height: usize) -> u8 {
     for (i, &count) in histogram.iter().enumerate() {
         total_sum += i as f64 * count as f64;
     }
-    let total_mean = total_sum / size as f64;
+    let _total_mean = total_sum / size as f64;
 
     // Find optimal threshold using Otsu's method
     let mut best_threshold = 0u8;

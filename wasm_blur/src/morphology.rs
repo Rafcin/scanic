@@ -1,8 +1,5 @@
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use std::arch::wasm32::*;
-
 /// Enhanced Morphological Operations for Document Detection
 ///
 /// These operations are essential for:

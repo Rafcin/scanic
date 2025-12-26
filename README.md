@@ -30,11 +30,13 @@ This library is heavily inspired by [jscanify](https://github.com/puffinsoft/jsc
 ## Features
 
 - 📄 **Document Detection**: Accurately finds and extracts document contours from images
+- 🆔 **ID Document Optimized**: Special detection mode for passports, driver's licenses, and ID cards
 - ⚡ **Pure JavaScript**: Works everywhere JavaScript runs
 - 🦀 **Rust WebAssembly**: Performance-critical operations optimized with Rust-compiled WASM
+- 🔬 **OpenCV-Level Accuracy**: Advanced algorithms including CLAHE, Sobel/Scharr gradients, and Hough Line Transform
 - 🛠️ **Easy Integration**: Simple API for web apps, Electron, or Node.js applications
 - 🏷️ **MIT Licensed**: Free for personal and commercial use
-- 📦 **Lightweight**: Small bundle size (< 100kb) compared to OpenCV-based solutions (+30 mb)
+- 📦 **Lightweight**: Small bundle size (~250kb) compared to OpenCV-based solutions (+30 mb)
 
 ## Demo
 
@@ -55,7 +57,7 @@ Or use via CDN:
 ## Usage
 
 ```js
-import { scanDocument, extractDocument } from 'scanic';
+import { scanDocument, extractDocument, detectIDDocument, enhancedDocumentDetection } from 'scanic';
 
 // Simple usage - just detect document
 const result = await scanDocument(imageElement);
@@ -68,6 +70,17 @@ const extracted = await scanDocument(imageElement, { mode: 'extract' });
 if (extracted.success) {
   document.body.appendChild(extracted.output); // Display extracted document
 }
+
+// Detect ID documents (passports, driver's licenses) with optimized settings
+const idResult = await detectIDDocument(imageElement);
+if (idResult.success) {
+  console.log('ID document detected with', idResult.confidence, 'confidence');
+  console.log('Document type:', idResult.validation.documentType); // 'id_card', 'passport', etc.
+}
+
+// Enhanced detection with custom presets
+const enhanced = await enhancedDocumentDetection(imageElement, { preset: 'accurate' });
+// Presets: 'fast', 'balanced', 'accurate', 'idDocument'
 
 // Manual extraction with custom corner points (for image editors)
 const corners = {
@@ -152,6 +165,41 @@ Main entry point for document scanning with flexible modes and output options.
 - `contour`: Array of contour points
 - `success`: Boolean indicating if document was detected
 - `message`: Status message
+
+#### `enhancedDocumentDetection(image, options?)`
+Advanced document detection with OpenCV-level algorithms and confidence scoring.
+
+**Parameters:**
+- `image`: HTMLImageElement, HTMLCanvasElement, or ImageData
+- `options`: Configuration object
+  - `preset`: String - 'fast', 'balanced' (default), 'accurate', or 'idDocument'
+  - `debug`: Boolean - Enable debug information
+
+**Returns:** `Promise<{ corners, confidence, validation, edges, success, message }>`
+
+- `confidence`: Number (0-1) indicating detection confidence
+- `validation`: Object with shape scores, aspect ratio analysis, and document type
+- `edges`: Edge detection result
+
+#### `detectIDDocument(image, options?)`
+Specialized detection for ID documents (passports, driver's licenses, ID cards).
+
+Uses optimized settings for rectangular ID documents with specific aspect ratios (CR-80: 1.586:1, Passport: 1.42:1).
+
+#### `quickDocumentDetection(image, options?)`
+Fast detection mode optimized for real-time camera preview.
+
+### Detection Presets
+
+```js
+import { DETECTION_PRESETS } from 'scanic';
+
+// Available presets:
+// - 'fast': Minimal processing, best for real-time preview
+// - 'balanced': Good accuracy with reasonable performance (default)
+// - 'accurate': Maximum accuracy, slower processing
+// - 'idDocument': Optimized for passports and ID cards
+```
 
 ## Examples
 
@@ -243,12 +291,17 @@ This uses Docker to build the WASM module without requiring local Rust installat
 Scanic uses a **hybrid JavaScript + WebAssembly approach**:
 
 - **JavaScript Layer**: High-level API, DOM manipulation, and workflow coordination
-- **WebAssembly Layer**: CPU-intensive operations like:
+- **WebAssembly Layer**: CPU-intensive operations including:
   - Gaussian blur with SIMD optimizations
-  - Canny edge detection with hysteresis thresholding  
-  - Gradient calculations using Sobel operators
+  - Canny edge detection with hysteresis thresholding
+  - Gradient calculations using Sobel/Scharr operators
   - Non-maximum suppression for edge thinning
-  - Morphological operations (dilation/erosion)
+  - Morphological operations (dilation, erosion, opening, closing)
+  - **CLAHE** (Contrast Limited Adaptive Histogram Equalization)
+  - **Adaptive thresholding** (Mean, Gaussian, Sauvola, Niblack, Otsu)
+  - **Hough Line Transform** for precise edge detection
+  - **Document validation** with confidence scoring
+  - **Sub-pixel corner refinement**
 
 ## Contributing
 
@@ -308,13 +361,16 @@ Please ensure your code follows the existing style.
 
 ## Roadmap
 
-- [ ] Performance optimizations to match OpenCV speed
-- [ ] Enhanced WASM module with additional Rust-optimized algorithms
-- [ ] SIMD vectorization for more image processing operations
+- [x] ~~Enhanced WASM module with additional Rust-optimized algorithms~~
+- [x] ~~CLAHE preprocessing for uneven lighting~~
+- [x] ~~Hough Line Transform for precise edge detection~~
+- [x] ~~ID document detection with aspect ratio validation~~
+- [x] ~~Confidence scoring and document validation~~
 - [ ] TypeScript definitions
 - [ ] Additional image enhancement filters
 - [ ] Mobile-optimized processing
 - [ ] WebGPU acceleration for supported browsers
+- [ ] Barcode/QR code detection integration
 
 ## License
 

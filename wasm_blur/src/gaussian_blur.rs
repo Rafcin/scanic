@@ -3,6 +3,7 @@ use std::arch::wasm32::*;
 
 // Constants for optimization
 const SIMD_WIDTH: usize = 4;
+#[allow(dead_code)]
 const FIXED_POINT_SHIFT: u32 = 16;
 const FIXED_POINT_SCALE: f32 = 65536.0; // 2^16
 
@@ -17,6 +18,7 @@ fn to_fixed_point(val: f32) -> FixedPoint {
 
 // Convert fixed point to float (for final conversion)
 #[inline]
+#[allow(dead_code)]
 fn from_fixed_point(val: FixedPoint) -> f32 {
     val as f32 / FIXED_POINT_SCALE
 }

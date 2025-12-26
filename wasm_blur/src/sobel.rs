@@ -1,19 +1,8 @@
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-use std::arch::wasm32::*;
-
 /// Sobel operator kernels for gradient calculation
 /// These provide better edge detection than simple central difference
 /// by incorporating Gaussian smoothing perpendicular to the derivative direction.
-
-// Sobel 3x3 kernels
-const SOBEL_X_3X3: [i32; 9] = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-const SOBEL_Y_3X3: [i32; 9] = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-
-// Scharr 3x3 kernels (better rotational symmetry than Sobel)
-const SCHARR_X_3X3: [i32; 9] = [-3, 0, 3, -10, 0, 10, -3, 0, 3];
-const SCHARR_Y_3X3: [i32; 9] = [-3, -10, -3, 0, 0, 0, 3, 10, 3];
 
 // Sobel 5x5 kernels for more robust edge detection
 const SOBEL_X_5X5: [i32; 25] = [
