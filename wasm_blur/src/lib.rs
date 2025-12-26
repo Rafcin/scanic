@@ -14,6 +14,12 @@ pub mod hough;
 pub mod document_detection;
 pub mod morphology;
 
+// New OpenCV-inspired modules
+pub mod contours;
+pub mod perspective;
+pub mod bilateral;
+pub mod corners;
+
 // Re-export the blur function from gaussian_blur module for backward compatibility
 pub use gaussian_blur::blur;
 
@@ -78,4 +84,48 @@ pub use morphology::{
     close_edge_gaps,
     remove_small_components,
     thin_edges,
+};
+
+// Contour detection (Suzuki85 algorithm like OpenCV)
+pub use contours::{
+    find_contours,
+    approx_poly_dp,
+    contour_area,
+    arc_length,
+    is_contour_convex,
+    convex_hull,
+    bounding_rect,
+    contour_moments,
+    RetrievalMode,
+    ApproxMethod,
+};
+
+// Perspective transform (like OpenCV's warpPerspective)
+pub use perspective::{
+    get_perspective_transform,
+    invert_perspective_matrix,
+    warp_perspective,
+    warp_perspective_bicubic,
+    calculate_output_size,
+    warp_document,
+    get_affine_transform,
+};
+
+// Bilateral filter (edge-preserving smoothing)
+pub use bilateral::{
+    bilateral_filter,
+    bilateral_filter_fast,
+    bilateral_filter_rgba,
+    joint_bilateral_filter,
+    median_filter,
+    median_filter_fast,
+};
+
+// Corner detection (Harris, Shi-Tomasi, FAST)
+pub use corners::{
+    corner_harris,
+    corner_min_eigen_val,
+    good_features_to_track,
+    corner_sub_pix,
+    fast_corners,
 };
