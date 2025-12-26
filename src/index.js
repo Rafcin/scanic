@@ -438,3 +438,13 @@ export async function scanDocument(image, options = {}) {
     message: 'Document detected'
   };
 }
+
+// Export enhanced detection functions
+export {
+  enhancedDocumentDetection,
+  quickDocumentDetection,
+  detectIDDocument,
+  enhancedEdgeDetection,
+  detectDocumentHough,
+  DETECTION_PRESETS,
+} from './enhancedDetection.js';
