@@ -25,6 +25,9 @@ pub mod guided_filter;
 pub mod shadow_removal;
 pub mod features;
 
+// Image enhancement filters
+pub mod enhancement;
+
 // Re-export the blur function from gaussian_blur module for backward compatibility
 pub use gaussian_blur::blur;
 
@@ -160,4 +163,29 @@ pub use features::{
     compute_orb_features,
     match_descriptors,
     find_homography_ransac,
+};
+
+// Image enhancement filters
+pub use enhancement::{
+    adjust_brightness,
+    adjust_contrast,
+    adjust_saturation,
+    adjust_hue,
+    adjust_temperature,
+    apply_gamma,
+    auto_levels,
+    unsharp_mask,
+    enhance_edges,
+    sepia_filter,
+    vintage_filter,
+    vignette_filter,
+    posterize_filter,
+    invert_filter,
+    emboss_filter,
+    sketch_filter,
+    detect_skew_angle,
+    enhance_text_document,
+    binarize_document,
+    remove_background_white,
+    denoise_nlm,
 };

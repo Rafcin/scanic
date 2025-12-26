@@ -511,3 +511,93 @@ export {
   detectDocumentHough,
   DETECTION_PRESETS,
 } from './enhancedDetection.js';
+
+// Export image enhancement functions
+export {
+  applyFilter,
+  applyFilters,
+  autoEnhanceDocument,
+  adjustColors,
+  sharpen,
+  reduceNoise,
+  removeShadows,
+  autoWhiteBalance,
+  applyCLAHE,
+  detectSkewAngle,
+  deskew,
+  imageEnhancement,
+  FilterType,
+  EnhancementPresets,
+} from './imageEnhancement.js';
+
+// Export mobile processing functions
+export {
+  MobileProcessor,
+  createMobileProcessor,
+  processMobileFrame,
+  detectDeviceCapabilities,
+  getRecommendedConfig,
+  getOptimalCameraConstraints,
+  checkRealtimeSuitability,
+  MobileQualityPresets,
+} from './mobileProcessing.js';
+
+// Export WebGPU functions
+export {
+  WebGPUProcessor,
+  checkWebGPU,
+  createGPUProcessor,
+  webgpu,
+} from './webgpu.js';
+
+// Export barcode detection functions
+export {
+  BarcodeScanner,
+  barcodeScanner,
+  detectBarcodes,
+  detectQRCodes,
+  scanWithBarcodes,
+  BarcodeFormat,
+} from './barcodeDetection.js';
+
+// Library version
+export const version = '0.1.8';
+
+// Check if WASM is ready
+export async function isWasmReady() {
+  try {
+    const { default: init } = await import('../wasm_blur/pkg/wasm_blur.js');
+    await init();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Preload WASM module
+export async function preloadWasm() {
+  const { default: init } = await import('../wasm_blur/pkg/wasm_blur.js');
+  await init();
+}
+
+// Get library capabilities
+export function getCapabilities() {
+  return {
+    wasm: true,
+    webgpu: 'gpu' in navigator,
+    barcodeDetection: 'BarcodeDetector' in window || true, // Fallback available
+    simd: (() => {
+      try {
+        return WebAssembly.validate(
+          new Uint8Array([
+            0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0,
+            10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11,
+          ])
+        );
+      } catch {
+        return false;
+      }
+    })(),
+    threads: typeof SharedArrayBuffer !== 'undefined',
+  };
+}

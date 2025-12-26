@@ -25,6 +25,11 @@ Scanic is a blazing-fast, lightweight, and modern document scanner library writt
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
 - [WASM Module Documentation](#wasm-module-documentation)
+- [Image Enhancement](#image-enhancement)
+- [Mobile-Optimized Processing](#mobile-optimized-processing)
+- [WebGPU Acceleration](#webgpu-acceleration)
+- [Barcode & QR Code Detection](#barcode--qr-code-detection)
+- [TypeScript Support](#typescript-support)
 - [Development Guide](#development-guide)
 - [Testing](#testing)
 - [Framework Examples](#framework-examples)
@@ -49,6 +54,11 @@ This library is heavily inspired by [jscanify](https://github.com/puffinsoft/jsc
 - 🛠️ **Easy Integration**: Simple API for web apps, Electron, or Node.js applications
 - 🏷️ **MIT Licensed**: Free for personal and commercial use
 - 📦 **Lightweight**: Small bundle size (~250kb) compared to OpenCV-based solutions (+30 mb)
+- 🎨 **Image Enhancement**: 20+ filters including brightness, contrast, sepia, vintage, denoise, and more
+- 📱 **Mobile Optimized**: Device-aware processing with adaptive quality and battery-saving modes
+- 🚀 **WebGPU Acceleration**: GPU-accelerated processing for supported browsers
+- 📊 **Barcode/QR Detection**: Integrated barcode and QR code detection with continuous scanning
+- 📝 **TypeScript Support**: Comprehensive type definitions for all APIs
 
 ## Demo
 
@@ -502,6 +512,223 @@ const homography = find_homography_ransac(
 
 ---
 
+## Image Enhancement
+
+Scanic includes a comprehensive image enhancement module with 20+ filters:
+
+```js
+import {
+  applyFilter,
+  applyFilters,
+  autoEnhanceDocument,
+  FilterType,
+  EnhancementPresets
+} from 'scanic';
+
+// Apply a single filter
+const brightened = await applyFilter(image, 'brightness', { amount: 20 });
+const sharpened = await applyFilter(image, 'unsharp_mask', { amount: 50 });
+
+// Apply multiple filters in sequence
+const enhanced = await applyFilters(image, [
+  { filter: 'auto_levels' },
+  { filter: 'clahe', params: { clipLimit: 2.0, gridSize: 8 } },
+  { filter: 'unsharp_mask', params: { amount: 30 } }
+]);
+
+// Auto-enhance with presets
+const result = await autoEnhanceDocument(image, {
+  preset: 'text',     // 'auto', 'photo', 'text', 'whiteboard', 'receipt', 'handwriting'
+  deskew: true,       // Auto-correct skew
+  blackAndWhite: false
+});
+```
+
+### Available Filters
+
+| Category | Filters |
+|----------|---------|
+| **Color** | brightness, contrast, saturation, hue, temperature, gamma, auto_levels |
+| **Sharpening** | unsharp_mask, edge_enhance |
+| **Enhancement** | clahe, histogram_eq, shadow_removal, white_balance, denoise |
+| **Artistic** | sepia, vintage, vignette, posterize, invert, emboss, sketch, grayscale |
+| **Document** | binarize, enhance_text, remove_background |
+
+---
+
+## Mobile-Optimized Processing
+
+Scanic includes device-aware optimizations for mobile devices:
+
+```js
+import {
+  createMobileProcessor,
+  detectDeviceCapabilities,
+  getOptimalCameraConstraints,
+  MobileQualityPresets
+} from 'scanic';
+
+// Detect device capabilities
+const capabilities = detectDeviceCapabilities();
+console.log('Performance tier:', capabilities.performanceTier); // 'low', 'medium', 'high'
+console.log('Has WebGPU:', capabilities.hasWebGPU);
+
+// Create mobile-optimized processor
+const processor = createMobileProcessor({
+  preset: 'balanced',     // 'fastest', 'balanced', 'quality'
+  adaptiveQuality: true,  // Auto-adjust based on performance
+  batterySaver: false
+});
+
+// Process a single frame
+const result = await processor.processFrame(image);
+console.log('Processing time:', result.processingTimeMs, 'ms');
+console.log('Current FPS:', result.currentFps);
+
+// Continuous processing from video
+processor.startContinuousProcessing(videoElement, (result) => {
+  if (result.success) {
+    drawCorners(result.corners);
+  }
+});
+
+// Stop when done
+processor.stopContinuousProcessing();
+
+// Get optimal camera constraints for device
+const constraints = getOptimalCameraConstraints(capabilities);
+const stream = await navigator.mediaDevices.getUserMedia(constraints);
+```
+
+---
+
+## WebGPU Acceleration
+
+Scanic supports GPU-accelerated processing using WebGPU (where available):
+
+```js
+import { checkWebGPU, createGPUProcessor, webgpu } from 'scanic';
+
+// Check WebGPU availability
+const status = await checkWebGPU();
+if (status.available) {
+  console.log('WebGPU available:', status.adapterInfo);
+} else {
+  console.log('WebGPU not available:', status.reason);
+}
+
+// Create GPU processor
+const gpu = await createGPUProcessor({
+  powerPreference: 'high-performance'
+});
+
+// Use GPU-accelerated operations
+const blurred = await gpu.gaussianBlur(imageData, 7);
+const edges = await gpu.sobelEdgeDetection(imageData);
+const gray = await gpu.grayscale(imageData);
+const binary = await gpu.adaptiveThreshold(imageData, 11, 10);
+const dilated = await gpu.morphology(imageData, 'dilate', 3);
+
+// Full document detection pipeline on GPU
+const result = await gpu.detectDocument(imageData);
+
+// Clean up when done
+gpu.dispose();
+```
+
+---
+
+## Barcode & QR Code Detection
+
+Scanic includes integrated barcode and QR code detection:
+
+```js
+import {
+  detectBarcodes,
+  detectQRCodes,
+  scanWithBarcodes,
+  barcodeScanner,
+  BarcodeFormat
+} from 'scanic';
+
+// Detect all barcodes
+const barcodes = await detectBarcodes(image, {
+  formats: [BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13],
+  maxDetections: 5
+});
+
+for (const barcode of barcodes) {
+  console.log('Found:', barcode.format, barcode.data);
+  console.log('Location:', barcode.boundingBox);
+}
+
+// Detect QR codes specifically
+const qrCodes = await detectQRCodes(image);
+
+// Scan document AND detect barcodes in one pass
+const result = await scanWithBarcodes(image,
+  { mode: 'extract' },  // Document options
+  { tryHarder: true }   // Barcode options
+);
+
+if (result.success) {
+  console.log('Document extracted');
+}
+if (result.hasBarcode) {
+  console.log('Found barcodes:', result.barcodes);
+}
+
+// Continuous barcode scanning from video
+barcodeScanner.startScanning(videoElement, (results) => {
+  for (const result of results) {
+    console.log('Scanned:', result.data);
+  }
+}, { scanInterval: 200 });
+
+// Stop scanning
+barcodeScanner.stopScanning();
+```
+
+### Supported Barcode Formats
+
+QR Code, Data Matrix, Aztec, PDF417, Code 128, Code 39, Code 93, Codabar, EAN-13, EAN-8, UPC-A, UPC-E, ITF
+
+*Note: Format support depends on browser's BarcodeDetector API. QR code detection has a JavaScript fallback.*
+
+---
+
+## TypeScript Support
+
+Scanic includes comprehensive TypeScript definitions:
+
+```ts
+import {
+  scanDocument,
+  ScanDocumentOptions,
+  ScanDocumentResult,
+  DocumentCorners,
+  Point
+} from 'scanic';
+
+const options: ScanDocumentOptions = {
+  mode: 'extract',
+  output: 'canvas',
+  maxProcessingDimension: 800
+};
+
+const result: ScanDocumentResult = await scanDocument(image, options);
+
+if (result.success && result.corners) {
+  const corners: DocumentCorners = result.corners;
+  const topLeft: Point = corners.topLeft;
+  console.log(`Top-left corner at (${topLeft.x}, ${topLeft.y})`);
+}
+```
+
+Types are available for all exported functions, options, and results.
+
+---
+
 ## Development Guide
 
 ### Prerequisites
@@ -882,11 +1109,11 @@ git push origin feature/my-feature
 - [x] ~~Shadow removal and document lighting enhancement~~
 - [x] ~~ORB/BRIEF feature detection and matching~~
 - [x] ~~Guided filter for edge-aware smoothing~~
-- [ ] TypeScript definitions
-- [ ] Additional image enhancement filters
-- [ ] Mobile-optimized processing
-- [ ] WebGPU acceleration for supported browsers
-- [ ] Barcode/QR code detection integration
+- [x] ~~TypeScript definitions~~
+- [x] ~~Additional image enhancement filters~~
+- [x] ~~Mobile-optimized processing~~
+- [x] ~~WebGPU acceleration for supported browsers~~
+- [x] ~~Barcode/QR code detection integration~~
 
 ---
 
