@@ -20,6 +20,11 @@ pub mod perspective;
 pub mod bilateral;
 pub mod corners;
 
+// Modern 2025 vision techniques
+pub mod guided_filter;
+pub mod shadow_removal;
+pub mod features;
+
 // Re-export the blur function from gaussian_blur module for backward compatibility
 pub use gaussian_blur::blur;
 
@@ -128,4 +133,31 @@ pub use corners::{
     good_features_to_track,
     corner_sub_pix,
     fast_corners,
+};
+
+// Guided filter (faster O(1) edge-aware smoothing)
+pub use guided_filter::{
+    guided_filter,
+    guided_filter_fast,
+    guided_filter_multiscale,
+    guided_filter_color,
+};
+
+// Shadow removal and document lighting enhancement
+pub use shadow_removal::{
+    remove_shadows_retinex,
+    remove_shadows_dog,
+    normalize_illumination_local,
+    auto_white_balance,
+    detect_shadows,
+    flatten_background,
+    enhance_document_lighting,
+};
+
+// Feature detection and matching (ORB, BRIEF)
+pub use features::{
+    compute_brief_descriptor,
+    compute_orb_features,
+    match_descriptors,
+    find_homography_ransac,
 };
